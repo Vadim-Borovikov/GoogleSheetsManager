@@ -22,16 +22,13 @@ namespace GoogleSheetsManager
             provider.UpdateValues(range, table);
         }
 
-        public static string ToString(this IList<object> values, int index)
-        {
-            return Extract(values, index, o => o?.ToString());
-        }
+        public static string ToString(this IList<object> values, int index) => To(values, index, o => o?.ToString());
 
-        public static DateTime? ToDateTime(this IList<object> values, int index) => Extract(values, index, ToDateTime);
-        public static decimal? ToDecimal(this IList<object> values, int index) => Extract(values, index, ToDecimal);
-        public static int? ToInt(this IList<object> values, int index) => Extract(values, index, ToInt);
+        public static DateTime? ToDateTime(this IList<object> values, int index) => To(values, index, ToDateTime);
+        public static decimal? ToDecimal(this IList<object> values, int index) => To(values, index, ToDecimal);
+        public static int? ToInt(this IList<object> values, int index) => To(values, index, ToInt);
 
-        public static T Extract<T>(this IList<object> values, int index, Func<object, T> cast)
+        public static T To<T>(this IList<object> values, int index, Func<object, T> cast)
         {
             object o = values.Count > index ? values[index] : null;
             return cast(o);
