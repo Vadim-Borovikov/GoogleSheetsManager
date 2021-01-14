@@ -25,6 +25,8 @@ namespace GoogleSheetsManager
         public static string ToString(this IList<object> values, int index) => To(values, index, o => o?.ToString());
 
         public static DateTime? ToDateTime(this IList<object> values, int index) => To(values, index, ToDateTime);
+        public static TimeSpan? ToTimeSpan(IList<object> values, int index) => To(values, index, ToTimeSpan);
+        public static Uri ToUri(IList<object> values, int index) => To(values, index, ToUri);
         public static decimal? ToDecimal(this IList<object> values, int index) => To(values, index, ToDecimal);
         public static int? ToInt(this IList<object> values, int index) => To(values, index, ToInt);
 
@@ -42,6 +44,14 @@ namespace GoogleSheetsManager
         }
 
         private static DateTime? ToDateTime(object o) => o is long l ? (DateTime?)DateTime.FromOADate(l) : null;
+        private static TimeSpan? ToTimeSpan(object o) => ToDateTime(o)?.TimeOfDay;
+
+        private static Uri ToUri(object o)
+        {
+            string uriString = o?.ToString();
+            return string.IsNullOrWhiteSpace(uriString) ? null : new Uri(uriString);
+        }
+
         private static decimal? ToDecimal(object o)
         {
             switch (o)
@@ -54,9 +64,10 @@ namespace GoogleSheetsManager
                     return null;
             }
         }
-        private static int? ToInt(object o) => int.TryParse(o?.ToString(), out int i) ? (int?)i : null;
 
         public static string GetHyperlink(Uri link, string text) => string.Format(HyperlinkFormat, link, text);
+
+        private static int? ToInt(object o) => int.TryParse(o?.ToString(), out int i) ? (int?)i : null;
 
         private const string HyperlinkFormat = "=HYPERLINK(\"{0}\";\"{1}\")";
     }
