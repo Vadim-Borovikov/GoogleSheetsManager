@@ -25,8 +25,8 @@ namespace GoogleSheetsManager
         public static string ToString(this IList<object> values, int index) => To(values, index, o => o?.ToString());
 
         public static DateTime? ToDateTime(this IList<object> values, int index) => To(values, index, ToDateTime);
-        public static TimeSpan? ToTimeSpan(IList<object> values, int index) => To(values, index, ToTimeSpan);
-        public static Uri ToUri(IList<object> values, int index) => To(values, index, ToUri);
+        public static TimeSpan? ToTimeSpan(this IList<object> values, int index) => To(values, index, ToTimeSpan);
+        public static Uri ToUri(this IList<object> values, int index) => To(values, index, ToUri);
         public static decimal? ToDecimal(this IList<object> values, int index) => To(values, index, ToDecimal);
         public static int? ToInt(this IList<object> values, int index) => To(values, index, ToInt);
 
