@@ -12,14 +12,14 @@ namespace GoogleSheetsManager
     [SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
     public sealed class Provider : IDisposable
     {
-        public Provider(string credentialJson, string sheetId)
+        public Provider(string credentialJson, string applicationName, string sheetId)
         {
             GoogleCredential credential = GoogleCredential.FromJson(credentialJson).CreateScoped(Scopes);
 
             var initializer = new BaseClientService.Initializer
             {
                 HttpClientInitializer = credential,
-                ApplicationName = ApplicationName
+                ApplicationName = applicationName
             };
 
             _service = new SheetsService(initializer);
@@ -59,7 +59,6 @@ namespace GoogleSheetsManager
         }
 
         private static readonly string[] Scopes = { SheetsService.Scope.Drive };
-        private const string ApplicationName = "Carespace.FinanceHelper";
 
         private readonly SheetsService _service;
         private readonly string _sheetId;
