@@ -43,7 +43,19 @@ namespace GoogleSheetsManager
             return instance;
         }
 
-        private static DateTime? ToDateTime(object o) => o is long l ? (DateTime?)DateTime.FromOADate(l) : null;
+        private static DateTime? ToDateTime(object o)
+        {
+            switch (o)
+            {
+                case double d:
+                    return DateTime.FromOADate(d);
+                case long l:
+                    return DateTime.FromOADate(l);
+                default:
+                    return null;
+            }
+        }
+
         private static TimeSpan? ToTimeSpan(object o) => ToDateTime(o)?.TimeOfDay;
 
         private static Uri ToUri(object o)
