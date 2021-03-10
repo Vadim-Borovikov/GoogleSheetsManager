@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Google.Apis.Sheets.v4;
 
 namespace GoogleSheetsManager
 {
@@ -9,9 +10,12 @@ namespace GoogleSheetsManager
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public static class DataManager
     {
-        public static IList<T> GetValues<T>(Provider provider, string range) where T : ILoadable, new()
+        public static IList<T> GetValues<T>(Provider provider, string range,
+            SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum valueRenderOption =
+                SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE)
+            where T : ILoadable, new()
         {
-            IEnumerable<IList<object>> values = provider.GetValues(range, true);
+            IEnumerable<IList<object>> values = provider.GetValues(range, valueRenderOption);
             return values?.Select(LoadValues<T>).ToList();
         }
 

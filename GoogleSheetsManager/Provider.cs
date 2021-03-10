@@ -36,12 +36,11 @@ namespace GoogleSheetsManager
             request.Execute();
         }
 
-        internal IEnumerable<IList<object>> GetValues(string range, bool parseValues = false)
+        internal IEnumerable<IList<object>> GetValues(string range,
+            SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum valueRenderOption)
         {
             SpreadsheetsResource.ValuesResource.GetRequest request = _service.Spreadsheets.Values.Get(_sheetId, range);
-            request.ValueRenderOption = parseValues
-                ? SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.UNFORMATTEDVALUE
-                : SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
+            request.ValueRenderOption = valueRenderOption;
             request.DateTimeRenderOption =
                 SpreadsheetsResource.ValuesResource.GetRequest.DateTimeRenderOptionEnum.SERIALNUMBER;
             ValueRange response = request.Execute();
