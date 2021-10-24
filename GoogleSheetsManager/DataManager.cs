@@ -33,6 +33,7 @@ namespace GoogleSheetsManager
         public static Uri ToUri(this IList<object> values, int index) => To(values, index, ToUri);
         public static decimal? ToDecimal(this IList<object> values, int index) => To(values, index, ToDecimal);
         public static int? ToInt(this IList<object> values, int index) => To(values, index, ToInt);
+        public static bool? ToBool(this IList<object> values, int index) => values.To(index, ToBool);
 
         public static T To<T>(this IList<object> values, int index, Func<object, T> cast)
         {
@@ -84,6 +85,8 @@ namespace GoogleSheetsManager
         public static string GetHyperlink(Uri link, string text) => string.Format(HyperlinkFormat, link, text);
 
         private static int? ToInt(object o) => int.TryParse(o?.ToString(), out int i) ? (int?)i : null;
+
+        private static bool? ToBool(object o) => bool.TryParse(o?.ToString(), out bool b) ? (bool?)b : null;
 
         private const string HyperlinkFormat = "=HYPERLINK(\"{0}\";\"{1}\")";
     }
