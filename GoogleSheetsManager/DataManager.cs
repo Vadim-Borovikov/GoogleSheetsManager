@@ -66,6 +66,7 @@ namespace GoogleSheetsManager
         private static Uri ToUri(object o)
         {
             string uriString = o?.ToString();
+            // ReSharper disable once AssignNullToNotNullAttribute
             return string.IsNullOrWhiteSpace(uriString) ? null : new Uri(uriString);
         }
 
