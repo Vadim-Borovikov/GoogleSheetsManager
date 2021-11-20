@@ -57,7 +57,7 @@ namespace GoogleSheetsManager
             return request.ExecuteAsync();
         }
 
-        public async Task<string> CopyForAsync(string ownerEmail)
+        public async Task<string> CopyForAsync(string name, string folderId, string ownerEmail)
         {
             _spreadsheet = await GetSheetAsync();
 
@@ -69,6 +69,8 @@ namespace GoogleSheetsManager
                 await CopyContentAsync(this, provider);
 
                 await provider.SetupPermissionsForAsync(ownerEmail);
+
+                await provider.MoveAndRenameAsync(name, folderId);
             }
 
             return newSpreadSheet.SpreadsheetId;
@@ -137,6 +139,26 @@ namespace GoogleSheetsManager
             }
         }
 
+        private async Task MoveAndRenameAsync(string name, string folderId)
+        {
+            File file = await GetFileWithParentsAsync();
+
+            string oldParents = string.Join(',', file.Parents);
+
+            await MoveAndRenameAsync(name, folderId, oldParents);
+        }
+
+        private async Task MoveAndRenameAsync(string name, string folderId, string oldParents)
+        {
+            var body = new File { Name = name };
+
+            FilesResource.UpdateRequest request = _driveService.Files.Update(body, _sheetId);
+            request.AddParents = folderId;
+            request.RemoveParents = oldParents;
+
+            await request.ExecuteAsync();
+        }
+
         private Task<Spreadsheet> GetSheetAsync()
         {
             var request = new SpreadsheetsResource.GetRequest(_sheetsService, _sheetId);
@@ -183,7 +205,6 @@ namespace GoogleSheetsManager
 
             PermissionsResource.CreateRequest request = _driveService.Permissions.Create(body, _sheetId);
             request.TransferOwnership = owner;
-            request.MoveToNewOwnersRoot = owner;
 
             return request.ExecuteAsync();
         }
@@ -192,6 +213,13 @@ namespace GoogleSheetsManager
         {
             var body = new Permission { Role = "reader" };
             PermissionsResource.UpdateRequest request = _driveService.Permissions.Update(body, _sheetId, id);
+            return request.ExecuteAsync();
+        }
+
+        private Task<File> GetFileWithParentsAsync()
+        {
+            FilesResource.GetRequest request = _driveService.Files.Get(_sheetId);
+            request.Fields = "parents";
             return request.ExecuteAsync();
         }
 
