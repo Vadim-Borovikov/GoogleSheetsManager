@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading.Tasks;
 using Google.Apis.Sheets.v4;
+using Google.Apis.Sheets.v4.Data;
 
 namespace GoogleSheetsManager
 {
@@ -10,20 +12,21 @@ namespace GoogleSheetsManager
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public static class DataManager
     {
-        public static IList<T> GetValues<T>(Provider provider, string range,
+        public static async Task<IList<T>> GetValuesAsync<T>(Provider provider, string range,
             SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum valueRenderOption =
                 SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE)
             where T : ILoadable, new()
         {
-            IEnumerable<IList<object>> values = provider.GetValues(range, valueRenderOption);
+            ValueRange valueRange = await provider.GetValuesAsync(range, valueRenderOption);
+            IList<IList<object>> values = valueRange.Values;
             return values?.Select(LoadValues<T>).ToList();
         }
 
-        public static void UpdateValues<T>(Provider provider, string range, IEnumerable<T> values)
+        public static Task UpdateValuesAsync<T>(Provider provider, string range, IEnumerable<T> values)
             where T : ISavable
         {
             List<IList<object>> table = values.Select(v => v.Save()).ToList();
-            provider.UpdateValues(range, table);
+            return provider.UpdateValuesAsync(range, table);
         }
 
         public static string ToString(this IList<object> values, int index) => To(values, index, o => o?.ToString());

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading.Tasks;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Drive.v3.Data;
@@ -48,57 +49,56 @@ namespace GoogleSheetsManager
             _driveService.Dispose();
         }
 
-        public void ClearValues(string range)
+        public Task ClearValuesAsync(string range)
         {
             var body = new ClearValuesRequest();
             SpreadsheetsResource.ValuesResource.ClearRequest request =
                 _sheetsService.Spreadsheets.Values.Clear(body, _sheetId, range);
-            request.Execute();
+            return request.ExecuteAsync();
         }
 
-        public string CopyFor(string ownerEmail)
+        public async Task<string> CopyForAsync(string ownerEmail)
         {
-            _spreadsheet = GetSheet();
+            _spreadsheet = await GetSheetAsync();
 
-            Spreadsheet newSpreadSheet = CreateNew(_spreadsheet.Properties);
+            Spreadsheet newSpreadSheet = await CreateNewAsync(_spreadsheet.Properties);
 
             using (var provider =
                 new Provider(_driveService.HttpClientInitializer, _driveService.ApplicationName, newSpreadSheet))
             {
-                CopyContent(this, provider);
+                await CopyContentAsync(this, provider);
 
-                provider.SetupPermissionsFor(ownerEmail);
+                await provider.SetupPermissionsForAsync(ownerEmail);
             }
 
             return newSpreadSheet.SpreadsheetId;
         }
 
-        internal IEnumerable<IList<object>> GetValues(string range,
+        internal Task<ValueRange> GetValuesAsync(string range,
             SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum valueRenderOption)
         {
             SpreadsheetsResource.ValuesResource.GetRequest request = _sheetsService.Spreadsheets.Values.Get(_sheetId, range);
             request.ValueRenderOption = valueRenderOption;
             request.DateTimeRenderOption =
                 SpreadsheetsResource.ValuesResource.GetRequest.DateTimeRenderOptionEnum.SERIALNUMBER;
-            ValueRange response = request.Execute();
-            return response.Values;
+            return request.ExecuteAsync();
         }
 
-        internal void UpdateValues(string range, IList<IList<object>> values)
+        internal Task UpdateValuesAsync(string range, IList<IList<object>> values)
         {
             var valueRange = new ValueRange { Values = values };
             SpreadsheetsResource.ValuesResource.UpdateRequest request =
                 _sheetsService.Spreadsheets.Values.Update(valueRange, _sheetId, range);
             request.ValueInputOption =
                 SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.USERENTERED;
-            request.Execute();
+            return request.ExecuteAsync();
         }
 
-        private static void CopyContent(Provider from, Provider to)
+        private static async Task CopyContentAsync(Provider from, Provider to)
         {
             List<Sheet> oldSheets = to._spreadsheet.Sheets.ToList();
 
-            Dictionary<string, SheetProperties> newSheetsProperties = CopySheets(from, to);
+            Dictionary<string, SheetProperties> newSheetsProperties = await CopySheetsAsync(from, to);
 
             IEnumerable<Request> deleteRequests = oldSheets.Select(s => CreateDeleteSheetRequest(s.Properties.SheetId));
 
@@ -107,69 +107,70 @@ namespace GoogleSheetsManager
 
             List<Request> requests = deleteRequests.Concat(renameRequests).ToList();
 
-            to.BatchUpdate(requests);
+            await to.BatchUpdateAsync(requests);
         }
 
-        private static Dictionary<string, SheetProperties> CopySheets(Provider from, Provider to)
+        private static async Task<Dictionary<string, SheetProperties>> CopySheetsAsync(Provider from, Provider to)
         {
             var result = new Dictionary<string, SheetProperties>();
             for (int i = 0; i < from._spreadsheet.Sheets.Count; ++i)
             {
-                SheetProperties properties = from.CopyTo(to._sheetId, i);
+                SheetProperties properties = await from.CopyToAsync(to._sheetId, i);
                 Sheet sheet = from._spreadsheet.Sheets[i];
                 result[sheet.Properties.Title] = properties;
             }
             return result;
         }
 
-        private void SetupPermissionsFor(string ownerEmail)
+        private async Task SetupPermissionsForAsync(string ownerEmail)
         {
-            IList<Permission> oldPermissions = GetPermission().Permissions;
+            PermissionList oldPermissionList = await GetPermissionAsync();
+            IList<Permission> oldPermissions = oldPermissionList.Permissions;
 
-            AddPermissionTo("owner", "user", ownerEmail);
+            await AddPermissionToAsync("owner", "user", ownerEmail);
 
-            AddPermissionTo("writer", "anyone");
+            await AddPermissionToAsync("writer", "anyone");
 
             foreach (Permission permission in oldPermissions)
             {
-                DowngradePermission(permission.Id);
+                await DowngradePermissionAsync(permission.Id);
             }
         }
 
-        private Spreadsheet GetSheet()
+        private Task<Spreadsheet> GetSheetAsync()
         {
             var request = new SpreadsheetsResource.GetRequest(_sheetsService, _sheetId);
-            return request.Execute();
+            return request.ExecuteAsync();
         }
 
-        private SheetProperties CopyTo(string destinationSpreadsheetId, int sheetId)
+        private Task<SheetProperties> CopyToAsync(string destinationSpreadsheetId, int sheetId)
         {
             var body = new CopySheetToAnotherSpreadsheetRequest { DestinationSpreadsheetId = destinationSpreadsheetId };
             var request = new SpreadsheetsResource.SheetsResource.CopyToRequest(_sheetsService, body, _sheetId, sheetId);
-            return request.Execute();
+            return request.ExecuteAsync();
         }
 
-        private void BatchUpdate(IList<Request> requests)
+        private Task BatchUpdateAsync(IList<Request> requests)
         {
             var body = new BatchUpdateSpreadsheetRequest { Requests = requests };
             var request = new SpreadsheetsResource.BatchUpdateRequest(_sheetsService, body, _sheetId);
-            request.Execute();
+            return request.ExecuteAsync();
         }
 
-        private Spreadsheet CreateNew(SpreadsheetProperties properties)
+        private Task<Spreadsheet> CreateNewAsync(SpreadsheetProperties properties)
         {
             var body = new Spreadsheet { Properties = properties };
             var request = new SpreadsheetsResource.CreateRequest(_sheetsService, body);
-            return request.Execute();
+            return request.ExecuteAsync();
         }
 
-        private PermissionList GetPermission()
+        private Task<PermissionList> GetPermissionAsync()
         {
             PermissionsResource.ListRequest request = _driveService.Permissions.List(_sheetId);
-            return request.Execute();
+            return request.ExecuteAsync();
         }
 
-        private void AddPermissionTo(string role, string type, string emailAddress = null)
+        private Task AddPermissionToAsync(string role, string type, string emailAddress = null)
         {
             var body = new Permission
             {
@@ -184,14 +185,14 @@ namespace GoogleSheetsManager
             request.TransferOwnership = owner;
             request.MoveToNewOwnersRoot = owner;
 
-            request.Execute();
+            return request.ExecuteAsync();
         }
 
-        private void DowngradePermission(string id)
+        private Task DowngradePermissionAsync(string id)
         {
             var body = new Permission { Role = "reader" };
             PermissionsResource.UpdateRequest request = _driveService.Permissions.Update(body, _sheetId, id);
-            request.Execute();
+            return request.ExecuteAsync();
         }
 
         private static Request CreateDeleteSheetRequest(int? sheetId)
