@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <PackageId>GoogleSheetsManager</PackageId>
-    <Version>4.2.1</Version>
+    <Version>4.3.0</Version>
     <Authors>Vadim-Borovikov</Authors>
 	<Company>Carespace</Company>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.55.0.2502" />
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.55.0.2371" />
   </ItemGroup>
 
