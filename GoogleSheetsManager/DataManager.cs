@@ -100,6 +100,8 @@ namespace GoogleSheetsManager
 
         public static int? ToInt(this object o) => int.TryParse(o?.ToString(), out int i) ? (int?)i : null;
 
+        public static long? ToLong(this object o) => long.TryParse(o?.ToString(), out long l) ? (long?)l : null;
+
         public static bool? ToBool(this object o) => bool.TryParse(o?.ToString(), out bool b) ? (bool?)b : null;
 
         public static string GetHyperlink(Uri link, string text) => string.Format(HyperlinkFormat, link, text);
