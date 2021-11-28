@@ -17,41 +17,53 @@ namespace GoogleSheetsManager
                 SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE)
             where T : ILoadable, new()
         {
-            ValueRange valueRange = await provider.GetValuesAsync(range, valueRenderOption);
-            IList<IList<object>> values = valueRange.Values;
-            return values?.Select(LoadValues<T>).ToList();
+            ValueRange rawValueRange = await provider.GetValuesAsync(range, valueRenderOption);
+            IList<IList<object>> rawValueSets = rawValueRange.Values;
+            if (rawValueSets.Count < 1)
+            {
+                return new List<T>();
+            }
+            List<string> titles = rawValueSets[0].Select(o => o.ToString()).ToList();
+            var instances = new List<T>();
+            for (int i = 1; i < rawValueSets.Count; ++i)
+            {
+                var valueSet = new Dictionary<string, object>();
+                IList<object> rawValueSet = rawValueSets[i];
+                for (int j = 0; j < titles.Count; ++j)
+                {
+                    valueSet[titles[j]] = rawValueSet[j];
+                }
+                var instance = LoadValues<T>(valueSet);
+                instances.Add(instance);
+            }
+            return instances;
         }
 
-        public static Task UpdateValuesAsync<T>(Provider provider, string range, IEnumerable<T> values)
+        public static Task UpdateValuesAsync<T>(Provider provider, string range, IList<T> instances)
             where T : ISavable
         {
-            List<IList<object>> table = values.Select(v => v.Save()).ToList();
-            return provider.UpdateValuesAsync(range, table);
+            IList<string> titles = instances[0].Titles;
+            var rawValueSets = new List<IList<object>> { titles.Cast<object>().ToList() };
+
+            IEnumerable<IDictionary<string, object>> valueSets = instances.Select(v => v.Save());
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            foreach (IDictionary<string, object> valueSet in valueSets)
+            {
+                List<object> rawValueSet = titles.Select(t => valueSet[t]).ToList();
+                rawValueSets.Add(rawValueSet);
+            }
+
+            return provider.UpdateValuesAsync(range, rawValueSets);
         }
 
-        public static string ToString(this IList<object> values, int index) => To(values, index, o => o?.ToString());
-
-        public static DateTime? ToDateTime(this IList<object> values, int index) => To(values, index, ToDateTime);
-        public static TimeSpan? ToTimeSpan(this IList<object> values, int index) => To(values, index, ToTimeSpan);
-        public static Uri ToUri(this IList<object> values, int index) => To(values, index, ToUri);
-        public static decimal? ToDecimal(this IList<object> values, int index) => To(values, index, ToDecimal);
-        public static int? ToInt(this IList<object> values, int index) => To(values, index, ToInt);
-        public static bool? ToBool(this IList<object> values, int index) => values.To(index, ToBool);
-
-        public static T To<T>(this IList<object> values, int index, Func<object, T> cast)
-        {
-            object o = values.Count > index ? values[index] : null;
-            return cast(o);
-        }
-
-        private static T LoadValues<T>(IList<object> values) where T : ILoadable, new()
+        private static T LoadValues<T>(IDictionary<string, object> valueSet) where T : ILoadable, new()
         {
             var instance = new T();
-            instance.Load(values);
+            instance.Load(valueSet);
             return instance;
         }
 
-        private static DateTime? ToDateTime(object o)
+        public static DateTime? ToDateTime(this object o)
         {
             switch (o)
             {
@@ -64,16 +76,16 @@ namespace GoogleSheetsManager
             }
         }
 
-        private static TimeSpan? ToTimeSpan(object o) => ToDateTime(o)?.TimeOfDay;
+        public static TimeSpan? ToTimeSpan(this object o) => ToDateTime(o)?.TimeOfDay;
 
-        private static Uri ToUri(object o)
+        public static Uri ToUri(this object o)
         {
             string uriString = o?.ToString();
             // ReSharper disable once AssignNullToNotNullAttribute
             return string.IsNullOrWhiteSpace(uriString) ? null : new Uri(uriString);
         }
 
-        private static decimal? ToDecimal(object o)
+        public static decimal? ToDecimal(this object o)
         {
             switch (o)
             {
@@ -86,11 +98,11 @@ namespace GoogleSheetsManager
             }
         }
 
+        public static int? ToInt(this object o) => int.TryParse(o?.ToString(), out int i) ? (int?)i : null;
+
+        public static bool? ToBool(this object o) => bool.TryParse(o?.ToString(), out bool b) ? (bool?)b : null;
+
         public static string GetHyperlink(Uri link, string text) => string.Format(HyperlinkFormat, link, text);
-
-        private static int? ToInt(object o) => int.TryParse(o?.ToString(), out int i) ? (int?)i : null;
-
-        private static bool? ToBool(object o) => bool.TryParse(o?.ToString(), out bool b) ? (bool?)b : null;
 
         private const string HyperlinkFormat = "=HYPERLINK(\"{0}\";\"{1}\")";
     }

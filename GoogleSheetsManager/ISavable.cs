@@ -4,6 +4,7 @@ namespace GoogleSheetsManager
 {
     public interface ISavable
     {
-        IList<object> Save();
+        IList<string> Titles { get; }
+        IDictionary<string, object> Save();
     }
 }
