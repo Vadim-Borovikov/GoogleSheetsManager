@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
-using Google.Apis.Sheets.v4;
-using Google.Apis.Sheets.v4.Data;
+using GoogleSheetsManager.Providers;
 
 namespace GoogleSheetsManager
 {
@@ -12,13 +11,10 @@ namespace GoogleSheetsManager
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public static class DataManager
     {
-        public static async Task<IList<T>> GetValuesAsync<T>(Provider provider, string range,
-            SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum valueRenderOption =
-                SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE)
+        public static async Task<IList<T>> GetValuesAsync<T>(SheetsProvider provider, string range)
             where T : ILoadable, new()
         {
-            ValueRange rawValueRange = await provider.GetValuesAsync(range, valueRenderOption);
-            IList<IList<object>> rawValueSets = rawValueRange.Values;
+            IList<IList<object>> rawValueSets = await provider.GetValueListAsync(range);
             if (rawValueSets.Count < 1)
             {
                 return new List<T>();
@@ -39,7 +35,7 @@ namespace GoogleSheetsManager
             return instances;
         }
 
-        public static Task UpdateValuesAsync<T>(Provider provider, string range, IList<T> instances)
+        public static Task UpdateValuesAsync<T>(SheetsProvider sheetsProvider, string range, IList<T> instances)
             where T : ISavable
         {
             IList<string> titles = instances[0].Titles;
@@ -53,26 +49,27 @@ namespace GoogleSheetsManager
                 rawValueSets.Add(rawValueSet);
             }
 
-            return provider.UpdateValuesAsync(range, rawValueSets);
+            return sheetsProvider.UpdateValuesAsync(range, rawValueSets);
         }
 
-        private static T LoadValues<T>(IDictionary<string, object> valueSet) where T : ILoadable, new()
+        public static async Task<string> CopyForAsync(SheetsProvider sheetsProvider, string name, string folderId,
+            string ownerEmail)
         {
-            var instance = new T();
-            instance.Load(valueSet);
-            return instance;
-        }
+            await sheetsProvider.LoadSpreadsheetAsync();
 
-        public static DateTime? ToDateTime(this object o)
-        {
-            switch (o)
+            using (SheetsProvider newSheetsProvider = await sheetsProvider.CreateNewWithPropertiesAsync())
             {
-                case double d:
-                    return DateTime.FromOADate(d);
-                case long l:
-                    return DateTime.FromOADate(l);
-                default:
-                    return null;
+                await CopyContentAsync(sheetsProvider, newSheetsProvider);
+
+                using (var driveProvider =
+                    new DriveProvider(sheetsProvider.ServiceInitializer, newSheetsProvider.SpreadsheetId))
+                {
+                    await SetupPermissionsForAsync(driveProvider, ownerEmail);
+
+                    await MoveAndRenameAsync(driveProvider, name, folderId);
+                }
+
+                return newSheetsProvider.SpreadsheetId;
             }
         }
 
@@ -104,7 +101,61 @@ namespace GoogleSheetsManager
 
         public static bool? ToBool(this object o) => bool.TryParse(o?.ToString(), out bool b) ? (bool?)b : null;
 
+        public static DateTime? ToDateTime(this object o)
+        {
+            switch (o)
+            {
+                case double d:
+                    return DateTime.FromOADate(d);
+                case long l:
+                    return DateTime.FromOADate(l);
+                default:
+                    return null;
+            }
+        }
+
         public static string GetHyperlink(Uri link, string text) => string.Format(HyperlinkFormat, link, text);
+
+        private static T LoadValues<T>(IDictionary<string, object> valueSet) where T : ILoadable, new()
+        {
+            var instance = new T();
+            instance.Load(valueSet);
+            return instance;
+        }
+
+        private static async Task CopyContentAsync(SheetsProvider from, SheetsProvider to)
+        {
+            to.PlanToDeleteSheets();
+            await to.CopyContentAndPlanToRenameSheetsAsync(from);
+            await to.ExecutePlanned();
+        }
+
+        private static async Task SetupPermissionsForAsync(DriveProvider provider, string ownerEmail)
+        {
+            IEnumerable<string> oldPermissionIds = await provider.GetPermissionIdsAsync();
+
+            await AddPermissionToAsync(provider, "owner", "user", ownerEmail);
+
+            await AddPermissionToAsync(provider, "writer", "anyone");
+
+            foreach (string id in oldPermissionIds)
+            {
+                await provider.DowngradePermissionAsync(id);
+            }
+        }
+
+        private static Task AddPermissionToAsync(DriveProvider provider, string role, string type, string emailAddress = null)
+        {
+            bool transferOwnership = role == "owner";
+            return provider.AddPermissionToAsync(type, role, emailAddress, transferOwnership);
+        }
+
+        private static async Task MoveAndRenameAsync(DriveProvider provider, string name, string folderId)
+        {
+            IList<string> oldParentLists = await provider.GetParentsAsync();
+            string oldParents = string.Join(',', oldParentLists);
+            await provider.MoveAndRenameAsync(name, folderId, oldParents);
+        }
 
         private const string HyperlinkFormat = "=HYPERLINK(\"{0}\";\"{1}\")";
     }
