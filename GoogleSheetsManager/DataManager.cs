@@ -27,7 +27,7 @@ namespace GoogleSheetsManager
                 IList<object> rawValueSet = rawValueSets[i];
                 for (int j = 0; j < titles.Count; ++j)
                 {
-                    valueSet[titles[j]] = rawValueSet[j];
+                    valueSet[titles[j]] = rawValueSet.Count > j ? rawValueSet[j] : null;
                 }
                 var instance = LoadValues<T>(valueSet);
                 instances.Add(instance);

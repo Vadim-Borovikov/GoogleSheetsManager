@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <PackageId>GoogleSheetsManager</PackageId>
-    <Version>8.3.0</Version>
+    <Version>8.3.1</Version>
     <Authors>Vadim-Borovikov</Authors>
 	<Company>Carespace</Company>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
