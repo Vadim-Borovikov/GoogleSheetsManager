@@ -99,7 +99,17 @@ namespace GoogleSheetsManager
 
         public static long? ToLong(this object o) => long.TryParse(o?.ToString(), out long l) ? (long?)l : null;
 
+        public static ushort? ToUshort(this object o) => ushort.TryParse(o?.ToString(), out ushort u) ? (ushort?)u : null;
+
+        public static byte? ToByte(this object o) => byte.TryParse(o?.ToString(), out byte b) ? (byte?)b : null;
+
         public static bool? ToBool(this object o) => bool.TryParse(o?.ToString(), out bool b) ? (bool?)b : null;
+
+        public static List<Uri> ToUris(this object o) => o?.ToString()
+                                                          ?.Split("\n")
+                                                          ?.Select(ToUri)
+                                                          .Where(u => u != null)
+                                                          .ToList();
 
         public static DateTime? ToDateTime(this object o)
         {
