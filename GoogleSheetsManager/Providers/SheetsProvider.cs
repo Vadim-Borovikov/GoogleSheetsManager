@@ -42,10 +42,12 @@ namespace GoogleSheetsManager.Providers
             return request.ExecuteAsync();
         }
 
-        internal async Task<IList<IList<object>>> GetValueListAsync(string range)
+        internal async Task<IList<IList<object>>> GetValueListAsync(string range, bool formula)
         {
-            ValueRange valueRange = await GetValuesAsync(range,
-                SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.UNFORMATTEDVALUE);
+            SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum renderOption = formula
+                ? SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.FORMULA
+                : SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.UNFORMATTEDVALUE;
+            ValueRange valueRange = await GetValuesAsync(range, renderOption);
             return valueRange.Values;
         }
 

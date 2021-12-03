@@ -11,10 +11,10 @@ namespace GoogleSheetsManager
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public static class DataManager
     {
-        public static async Task<IList<T>> GetValuesAsync<T>(SheetsProvider provider, string range)
+        public static async Task<IList<T>> GetValuesAsync<T>(SheetsProvider provider, string range, bool formula = false)
             where T : ILoadable, new()
         {
-            IList<IList<object>> rawValueSets = await provider.GetValueListAsync(range);
+            IList<IList<object>> rawValueSets = await provider.GetValueListAsync(range, formula);
             if (rawValueSets.Count < 1)
             {
                 return new List<T>();
