@@ -1,19 +1,37 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <PackageId>GoogleSheetsManager</PackageId>
-    <Version>8.4.1</Version>
+    <Version>9.0.0-a</Version>
     <Authors>Vadim-Borovikov</Authors>
-	<Company>Carespace</Company>
+	<Company>Care Space</Company>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<RepositoryUrl>https://github.com/Vadim-Borovikov/GoogleSheetsManager</RepositoryUrl>
 	<Description>Some wrapper for Google.Apis.Sheets</Description>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageLicenseFile>LICENSE</PackageLicenseFile>
+	<RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+	  <None Include="..\LICENSE">
+		  <Pack>True</Pack>
+		  <PackagePath>\</PackagePath>
+	  </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Google.Apis.Drive.v3" Version="1.55.0.2502" />
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.55.0.2371" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="GenerateNuspec">
+    <Exec Command="if $(ConfigurationName) == Release call postBuild.bat $(OutDir)..\$(PackageId).$(PackageVersion).nupkg" />
+  </Target>
 
 </Project>

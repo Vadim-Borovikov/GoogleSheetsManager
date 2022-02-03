@@ -261,3 +261,4 @@ __pycache__/
 *.pyc
 /GoogleSheetsManager/nuget.config
 /GoogleSheetsManager/nuget push.cmd
+/GoogleSheetsManager/postBuild.bat
