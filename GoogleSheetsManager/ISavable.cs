@@ -1,10 +1,9 @@
 ﻿using System.Collections.Generic;
 
-namespace GoogleSheetsManager
+namespace GoogleSheetsManager;
+
+public interface ISavable
 {
-    public interface ISavable
-    {
-        IList<string> Titles { get; }
-        IDictionary<string, object> Save();
-    }
+    IList<string> Titles { get; }
+    IDictionary<string, object> Save();
 }

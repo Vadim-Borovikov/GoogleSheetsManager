@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
 
-namespace GoogleSheetsManager
+namespace GoogleSheetsManager;
+
+public interface ILoadable
 {
-    public interface ILoadable
-    {
-        void Load(IDictionary<string, object> valueSet);
-    }
+    void Load(IDictionary<string, object> valueSet);
 }
