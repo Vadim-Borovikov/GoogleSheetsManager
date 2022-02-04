@@ -261,3 +261,4 @@ __pycache__/
 *.pyc
 /GoogleSheetsManager/nuget.config
 /GoogleSheetsManager/postBuild.bat
+/GoogleSheetsManager.Tests/appsettings.json

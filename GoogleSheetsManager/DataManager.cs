@@ -45,7 +45,7 @@ public static class DataManager
         // ReSharper disable once LoopCanBeConvertedToQuery
         foreach (IDictionary<string, object> valueSet in valueSets)
         {
-            List<object> rawValueSet = titles.Select(t => valueSet[t]).ToList();
+            List<object> rawValueSet = titles.Select(t => valueSet[t] ?? "").ToList();
             rawValueSets.Add(rawValueSet);
         }
 
