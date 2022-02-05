@@ -72,16 +72,17 @@ public sealed class SheetsProvider : IDisposable
 
     internal void PlanToDeleteSheets()
     {
-        _requestsToExecute?.Clear();
-        _requestsToExecute = _spreadsheet.Sheets.Select(s => CreateDeleteSheetRequest(s.Properties.SheetId)).ToList();
+        _requestsToExecute.Clear();
+        _requestsToExecute.AddRange(_spreadsheet.Sheets.Select(s => CreateDeleteSheetRequest(s.Properties.SheetId)));
     }
 
     internal async Task CopyContentAndPlanToRenameSheetsAsync(SheetsProvider from)
     {
         foreach (Sheet sheet in from._spreadsheet.Sheets.Where(s => s.Properties.SheetId.HasValue))
         {
-            // ReSharper disable once PossibleInvalidOperationException
-            SheetProperties properties = await from.CopyToAsync(SpreadsheetId, sheet.Properties.SheetId.Value);
+            // ReSharper disable once NullableWarningSuppressionIsUsed
+            //   sheet.Properties.SheetId is null-checked already
+            SheetProperties properties = await from.CopyToAsync(SpreadsheetId, sheet.Properties.SheetId!.Value);
             Request renameRequest = CreateRenameSheetRequest(properties.SheetId, sheet.Properties.Title);
             _requestsToExecute.Add(renameRequest);
         }
@@ -160,5 +161,5 @@ public sealed class SheetsProvider : IDisposable
 
     private readonly SheetsService _service;
     private Spreadsheet _spreadsheet;
-    private List<Request> _requestsToExecute;
+    private List<Request> _requestsToExecute = new();
 }

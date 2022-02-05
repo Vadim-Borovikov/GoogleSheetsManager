@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using GoogleSheetsManager.Providers;
@@ -21,7 +22,7 @@ public class DataManagerTests
                                                          .Get<Configuration>();
 
         string googleCredentialJson = JsonConvert.SerializeObject(config.GoogleCredential);
-        string spreadsheetId = config.GoogleSheetId;
+        string spreadsheetId = config.GoogleSheetId ?? throw new NullReferenceException(nameof(config.GoogleSheetId));
         _provider = new SheetsProvider(googleCredentialJson, ApplicationName, spreadsheetId);
     }
 
@@ -46,9 +47,11 @@ public class DataManagerTests
     }
 
     [ClassCleanup]
-    public static void ClassCleanup() => _provider?.Dispose();
+    public static void ClassCleanup() => _provider.Dispose();
 
-    private static SheetsProvider _provider;
+    // ReSharper disable once NullableWarningSuppressionIsUsed
+    //   _provider initializes in ClassInitialize
+    private static SheetsProvider _provider = null!;
     private const string ApplicationName = "GoogleSheetManagerTest";
     private const string Range = "Test!A1:2";
     private const string Value = "x";

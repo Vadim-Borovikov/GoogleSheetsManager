@@ -18,11 +18,11 @@ public static class DataManager
         {
             return new List<T>();
         }
-        List<string> titles = rawValueSets[0].Select(o => o.ToString()).ToList();
+        List<string> titles = rawValueSets[0].Select(o => o.ToString() ?? "").ToList();
         List<T> instances = new();
         for (int i = 1; i < rawValueSets.Count; ++i)
         {
-            Dictionary<string, object> valueSet = new();
+            Dictionary<string, object?> valueSet = new();
             IList<object> rawValueSet = rawValueSets[i];
             for (int j = 0; j < titles.Count; ++j)
             {
@@ -40,23 +40,14 @@ public static class DataManager
     {
         IList<string> titles = instances[0].Titles;
         List<IList<object>> rawValueSets = new() { titles.Cast<object>().ToList() };
-
-        IEnumerable<IDictionary<string, object>> valueSets = instances.Select(v => v.Save());
-        // ReSharper disable once LoopCanBeConvertedToQuery
-        foreach (IDictionary<string, object> valueSet in valueSets)
-        {
-            List<object> rawValueSet = titles.Select(t => valueSet[t] ?? "").ToList();
-            rawValueSets.Add(rawValueSet);
-        }
-
+        rawValueSets.AddRange(instances.Select(i => i.Save())
+                                       .Select(set => titles.Select(t => set[t] ?? "").ToList()));
         return sheetsProvider.UpdateValuesAsync(range, rawValueSets);
     }
 
     public static async Task<string> CopyForAsync(SheetsProvider sheetsProvider, string name, string folderId,
         string ownerEmail)
     {
-        await sheetsProvider.LoadSpreadsheetAsync();
-
         using (SheetsProvider newSheetsProvider = await sheetsProvider.CreateNewWithPropertiesAsync())
         {
             await CopyContentAsync(sheetsProvider, newSheetsProvider);
@@ -75,13 +66,13 @@ public static class DataManager
 
     public static TimeSpan? ToTimeSpan(this object o) => ToDateTime(o)?.TimeOfDay;
 
-    public static Uri ToUri(this object o)
+    public static Uri? ToUri(this object? o)
     {
-        string uriString = o?.ToString();
+        string? uriString = o?.ToString();
         return string.IsNullOrWhiteSpace(uriString) ? null : new Uri(uriString);
     }
 
-    public static decimal? ToDecimal(this object o)
+    public static decimal? ToDecimal(this object? o)
     {
         return o switch
         {
@@ -91,21 +82,17 @@ public static class DataManager
         };
     }
 
-    public static int? ToInt(this object o) => int.TryParse(o?.ToString(), out int i) ? i : null;
+    public static int? ToInt(this object? o) => int.TryParse(o?.ToString(), out int i) ? i : null;
 
-    public static long? ToLong(this object o) => long.TryParse(o?.ToString(), out long l) ? l : null;
+    public static long? ToLong(this object? o) => long.TryParse(o?.ToString(), out long l) ? l : null;
 
-    public static ushort? ToUshort(this object o) => ushort.TryParse(o?.ToString(), out ushort u) ? u : null;
+    public static ushort? ToUshort(this object? o) => ushort.TryParse(o?.ToString(), out ushort u) ? u : null;
 
-    public static byte? ToByte(this object o) => byte.TryParse(o?.ToString(), out byte b) ? b : null;
+    public static byte? ToByte(this object? o) => byte.TryParse(o?.ToString(), out byte b) ? b : null;
 
-    public static bool? ToBool(this object o) => bool.TryParse(o?.ToString(), out bool b) ? b : null;
+    public static bool? ToBool(this object? o) => bool.TryParse(o?.ToString(), out bool b) ? b : null;
 
-    public static List<Uri> ToUris(this object o) => o?.ToString()
-                                                        ?.Split("\n")
-                                                        .Select(ToUri)
-                                                        .Where(u => u is not null)
-                                                        .ToList();
+    public static List<Uri>? ToUris(this object? o) => o?.ToString()?.Split("\n").Select(ToUri).RemoveNulls().ToList();
 
     public static DateTime? ToDateTime(this object o)
     {
@@ -119,7 +106,14 @@ public static class DataManager
 
     public static string GetHyperlink(Uri link, string text) => string.Format(HyperlinkFormat, link, text);
 
-    private static T LoadValues<T>(IDictionary<string, object> valueSet) where T : ILoadable, new()
+    public static IEnumerable<T1> RemoveNulls<T1>(this IEnumerable<T1?> seq)
+    {
+        // ReSharper disable once NullableWarningSuppressionIsUsed
+        //   i is null-checked already
+        return seq.Where(i => i is not null).Select(i => i!);
+    }
+
+    private static T LoadValues<T>(IDictionary<string, object?> valueSet) where T : ILoadable, new()
     {
         T instance = new();
         instance.Load(valueSet);
@@ -147,7 +141,8 @@ public static class DataManager
         }
     }
 
-    private static Task AddPermissionToAsync(DriveProvider provider, string role, string type, string emailAddress = null)
+    private static Task AddPermissionToAsync(DriveProvider provider, string role, string type,
+        string? emailAddress = null)
     {
         bool transferOwnership = role is "owner";
         return provider.AddPermissionToAsync(type, role, emailAddress, transferOwnership);

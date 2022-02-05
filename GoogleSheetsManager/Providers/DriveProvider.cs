@@ -43,7 +43,7 @@ internal sealed class DriveProvider : IDisposable
         await request.ExecuteAsync();
     }
 
-    public Task AddPermissionToAsync(string type, string role, string emailAddress, bool transferOwnership)
+    public Task AddPermissionToAsync(string type, string role, string? emailAddress, bool transferOwnership)
     {
         Permission body = new()
         {
