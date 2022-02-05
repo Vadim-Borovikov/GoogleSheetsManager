@@ -4,16 +4,16 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <PackageId>GoogleSheetsManager</PackageId>
-    <Version>9.0.1</Version>
+    <Version>9.0.2</Version>
     <Authors>Vadim Borovikov</Authors>
 	<Company>Care Space</Company>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<RepositoryUrl>https://github.com/Vadim-Borovikov/GoogleSheetsManager</RepositoryUrl>
 	<Description>Some wrapper for Google.Apis.Sheets</Description>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
-	<PackageLicenseFile>LICENSE</PackageLicenseFile>
 	<RunPostBuildEvent>Always</RunPostBuildEvent>
 	<Nullable>enable</Nullable>
+	<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
