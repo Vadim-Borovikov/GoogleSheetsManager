@@ -20,7 +20,6 @@ Global
 		{90C34D94-E642-4631-822E-3521C4104F05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{90C34D94-E642-4631-822E-3521C4104F05}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{90C34D94-E642-4631-822E-3521C4104F05}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{90C34D94-E642-4631-822E-3521C4104F05}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
