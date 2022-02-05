@@ -3,7 +3,6 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <PackageId>GoogleSheetsManager</PackageId>
     <Version>9.0.2</Version>
     <Authors>Vadim Borovikov</Authors>
 	<Company>Care Space</Company>
@@ -21,10 +20,6 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-	  <None Include="..\LICENSE">
-		  <Pack>True</Pack>
-		  <PackagePath>\</PackagePath>
-	  </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -34,7 +29,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="GenerateNuspec">
-    <Exec Command="if exist postBuild.bat if $(ConfigurationName) == Release call postBuild.bat $(OutDir)..\$(PackageId).$(PackageVersion).nupkg" />
+    <Exec Command="if exist postBuild.bat if $(ConfigurationName) == Release call postBuild.bat $(OutDir)..\$(AssemblyName).$(PackageVersion).nupkg" />
   </Target>
 
 </Project>
