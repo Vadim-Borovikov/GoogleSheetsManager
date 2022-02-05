@@ -45,10 +45,10 @@ public static class DataManager
         return sheetsProvider.UpdateValuesAsync(range, rawValueSets);
     }
 
-    public static async Task<string> CopyForAsync(SheetsProvider sheetsProvider, string name, string folderId,
-        string ownerEmail)
+    public static async Task<string> CopyForAsync(SheetsProviderWithSpreadsheet sheetsProvider, string name,
+        string folderId, string ownerEmail)
     {
-        using (SheetsProvider newSheetsProvider = await sheetsProvider.CreateNewWithPropertiesAsync())
+        using (SheetsProviderWithSpreadsheet newSheetsProvider = await sheetsProvider.CreateNewWithPropertiesAsync())
         {
             await CopyContentAsync(sheetsProvider, newSheetsProvider);
 
@@ -120,7 +120,7 @@ public static class DataManager
         return instance;
     }
 
-    private static async Task CopyContentAsync(SheetsProvider from, SheetsProvider to)
+    private static async Task CopyContentAsync(SheetsProviderWithSpreadsheet from, SheetsProviderWithSpreadsheet to)
     {
         to.PlanToDeleteSheets();
         await to.CopyContentAndPlanToRenameSheetsAsync(from);
