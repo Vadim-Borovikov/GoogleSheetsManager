@@ -16,7 +16,7 @@ public static class DataManager
         IList<IList<object>> rawValueSets = await provider.GetValueListAsync(range, formula);
         if (rawValueSets.Count < 1)
         {
-            return new List<T>();
+            return Array.Empty<T>();
         }
         List<string> titles = rawValueSets[0].Select(o => o.ToString() ?? "").ToList();
         List<T> instances = new();
