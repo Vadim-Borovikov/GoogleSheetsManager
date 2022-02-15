@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using GoogleSheetsManager.Providers;
@@ -22,7 +21,7 @@ public class DataManagerTests
                                                          .Get<Configuration>();
 
         string googleCredentialJson = JsonConvert.SerializeObject(config.GoogleCredential);
-        string spreadsheetId = config.GoogleSheetId ?? throw new NullReferenceException(nameof(config.GoogleSheetId));
+        string spreadsheetId = config.GoogleSheetId.GetValue(nameof(config.GoogleSheetId));
         _provider = new SheetsProvider(googleCredentialJson, ApplicationName, spreadsheetId);
     }
 

@@ -64,54 +64,7 @@ public static class DataManager
         }
     }
 
-    public static TimeSpan? ToTimeSpan(this object o) => ToDateTime(o)?.TimeOfDay;
-
-    public static Uri? ToUri(this object? o)
-    {
-        string? uriString = o?.ToString();
-        return string.IsNullOrWhiteSpace(uriString) ? null : new Uri(uriString);
-    }
-
-    public static decimal? ToDecimal(this object? o)
-    {
-        return o switch
-        {
-            long l   => l,
-            double d => (decimal)d,
-            _        => null
-        };
-    }
-
-    public static int? ToInt(this object? o) => int.TryParse(o?.ToString(), out int i) ? i : null;
-
-    public static long? ToLong(this object? o) => long.TryParse(o?.ToString(), out long l) ? l : null;
-
-    public static ushort? ToUshort(this object? o) => ushort.TryParse(o?.ToString(), out ushort u) ? u : null;
-
-    public static byte? ToByte(this object? o) => byte.TryParse(o?.ToString(), out byte b) ? b : null;
-
-    public static bool? ToBool(this object? o) => bool.TryParse(o?.ToString(), out bool b) ? b : null;
-
-    public static List<Uri>? ToUris(this object? o) => o?.ToString()?.Split("\n").Select(ToUri).RemoveNulls().ToList();
-
-    public static DateTime? ToDateTime(this object o)
-    {
-        return o switch
-        {
-            double d => DateTime.FromOADate(d),
-            long l   => DateTime.FromOADate(l),
-            _        => null
-        };
-    }
-
     public static string GetHyperlink(Uri link, string text) => string.Format(HyperlinkFormat, link, text);
-
-    public static IEnumerable<T1> RemoveNulls<T1>(this IEnumerable<T1?> seq)
-    {
-        // ReSharper disable once NullableWarningSuppressionIsUsed
-        //   i is null-checked already
-        return seq.Where(i => i is not null).Select(i => i!);
-    }
 
     private static T LoadValues<T>(IDictionary<string, object?> valueSet) where T : ILoadable, new()
     {
