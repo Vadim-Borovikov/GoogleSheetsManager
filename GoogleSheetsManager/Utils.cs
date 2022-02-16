@@ -8,7 +8,7 @@ namespace GoogleSheetsManager;
 [PublicAPI]
 public static class Utils
 {
-    public static TimeSpan? ToTimeSpan(this object o) => ToDateTime(o)?.TimeOfDay;
+    public static TimeSpan? ToTimeSpan(this object? o) => ToDateTime(o)?.TimeOfDay;
 
     public static Uri? ToUri(this object? o)
     {
@@ -38,13 +38,13 @@ public static class Utils
 
     public static List<Uri>? ToUris(this object? o) => o?.ToString()?.Split("\n").Select(ToUri).RemoveNulls().ToList();
 
-    public static DateTime? ToDateTime(this object o)
+    public static DateTime? ToDateTime(this object? o)
     {
         return o switch
         {
             double d => DateTime.FromOADate(d),
-            long l => DateTime.FromOADate(l),
-            _ => null
+            long l   => DateTime.FromOADate(l),
+            _        => null
         };
     }
 
