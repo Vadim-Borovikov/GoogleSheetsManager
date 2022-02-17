@@ -31,21 +31,23 @@ public class DataManagerTests
     [TestMethod]
     public async Task UpdateValuesAsyncTest()
     {
-        IList<TestInstance> instances = await DataManager.GetValuesAsync<TestInstance>(_provider, Range);
+        IList<TestInstance> instances = await DataManager.GetValuesAsync(_provider, TestInstance.Load, Range);
         Assert.AreEqual(1, instances.Count);
         Assert.AreEqual(Value, instances[0].Value);
 
         instances[0].Value = null;
         await DataManager.UpdateValuesAsync(_provider, Range, instances);
-        instances = await DataManager.GetValuesAsync<TestInstance>(_provider, Range);
+        instances = await DataManager.GetValuesAsync(_provider, TestInstance.Load, Range);
         Assert.AreEqual(0, instances.Count);
 
         TestInstance instance = new() { Value = Value };
         instances.Add(instance);
         await DataManager.UpdateValuesAsync(_provider, Range, instances);
-        instances = await DataManager.GetValuesAsync<TestInstance>(_provider, Range);
+        instances = await DataManager.GetValuesAsync(_provider, TestInstance.Load, Range);
         Assert.AreEqual(1, instances.Count);
         Assert.AreEqual(Value, instances[0].Value);
+
+        _provider.Dispose();
     }
 
     [ClassCleanup]

@@ -10,8 +10,8 @@ namespace GoogleSheetsManager;
 [PublicAPI]
 public static class DataManager
 {
-    public static async Task<IList<T>> GetValuesAsync<T>(SheetsProvider provider, string range, bool formula = false)
-        where T : ILoadable, new()
+    public static async Task<IList<T>> GetValuesAsync<T>(SheetsProvider provider,
+        Func<IDictionary<string, object?>, T> loader, string range, bool formula = false)
     {
         IList<IList<object>> rawValueSets = await provider.GetValueListAsync(range, formula);
         if (rawValueSets.Count < 1)
@@ -29,7 +29,7 @@ public static class DataManager
                 string title = titles[j];
                 valueSet[title] = j < rawValueSet.Count ? rawValueSet[j] : null;
             }
-            T instance = LoadValues<T>(valueSet);
+            T instance = loader(valueSet);
             instances.Add(instance);
         }
         return instances;
@@ -65,13 +65,6 @@ public static class DataManager
     }
 
     public static string GetHyperlink(Uri link, string text) => string.Format(HyperlinkFormat, link, text);
-
-    private static T LoadValues<T>(IDictionary<string, object?> valueSet) where T : ILoadable, new()
-    {
-        T instance = new();
-        instance.Load(valueSet);
-        return instance;
-    }
 
     private static async Task CopyContentAsync(SheetsProviderWithSpreadsheet from, SheetsProviderWithSpreadsheet to)
     {

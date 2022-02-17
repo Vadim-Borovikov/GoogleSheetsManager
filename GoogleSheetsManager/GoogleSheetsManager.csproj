@@ -3,7 +3,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <Version>10.1.1</Version>
+    <Version>11.0.0</Version>
     <Authors>Vadim Borovikov</Authors>
 	<Company>Care Space</Company>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Apis.Drive.v3" Version="1.55.0.2566" />
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.55.0.2601" />
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.55.0.2371" />
     <PackageReference Include="JetBrains.Annotations" Version="2021.3.0" />
   </ItemGroup>
