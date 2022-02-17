@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace GoogleSheetsManager.Tests;
 
-internal sealed class Configuration
+internal sealed class ConfigJson
 {
     [JsonProperty]
     public Dictionary<string, string?>? GoogleCredential { get; set; }

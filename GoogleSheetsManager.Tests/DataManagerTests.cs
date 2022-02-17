@@ -14,15 +14,18 @@ public class DataManagerTests
     [ClassInitialize]
     public static void ClassInitialize(TestContext _)
     {
-        Configuration config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
+        ConfigJson config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
                                                          // Create appsettings.json for private settings
                                                          .AddJsonFile("appsettings.json")
                                                          .Build()
-                                                         .Get<Configuration>();
+                                                         .Get<ConfigJson>();
 
+        Assert.IsNotNull(config.GoogleCredential);
         string googleCredentialJson = JsonConvert.SerializeObject(config.GoogleCredential);
-        string spreadsheetId = config.GoogleSheetId.GetValue(nameof(config.GoogleSheetId));
-        _provider = new SheetsProvider(googleCredentialJson, ApplicationName, spreadsheetId);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(googleCredentialJson));
+
+        Assert.IsFalse(string.IsNullOrWhiteSpace(config.GoogleSheetId));
+        _provider = new SheetsProvider(googleCredentialJson, ApplicationName, config.GoogleSheetId);
     }
 
     [TestMethod]
