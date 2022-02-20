@@ -1,6 +1,6 @@
 ﻿namespace GoogleSheetsManager;
 
-public interface IConvertableTo<out T>
+public interface IConvertibleTo<out T>
 {
     T? Convert();
 }

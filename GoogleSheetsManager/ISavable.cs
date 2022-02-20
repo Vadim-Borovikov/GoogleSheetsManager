@@ -2,7 +2,7 @@
 
 namespace GoogleSheetsManager;
 
-public interface ISavable : IConvertableTo<IDictionary<string, object?>>
+public interface ISavable : IConvertibleTo<IDictionary<string, object?>>
 {
     IList<string> Titles { get; }
 }
