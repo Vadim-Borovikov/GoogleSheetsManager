@@ -11,7 +11,7 @@ namespace GoogleSheetsManager;
 public static class DataManager
 {
     public static async Task<IList<T>> GetValuesAsync<T>(SheetsProvider provider,
-        Func<IDictionary<string, object?>, T> loader, string range, bool formula = false)
+        Func<IDictionary<string, object?>, T?> loader, string range, bool formula = false)
     {
         IList<IList<object>> rawValueSets = await provider.GetValueListAsync(range, formula);
         if (rawValueSets.Count < 1)
@@ -29,8 +29,11 @@ public static class DataManager
                 string title = titles[j];
                 valueSet[title] = j < rawValueSet.Count ? rawValueSet[j] : null;
             }
-            T instance = loader(valueSet);
-            instances.Add(instance);
+            T? instance = loader(valueSet);
+            if (instance is not null)
+            {
+                instances.Add(instance);
+            }
         }
         return instances;
     }
@@ -40,7 +43,8 @@ public static class DataManager
     {
         IList<string> titles = instances[0].Titles;
         List<IList<object>> rawValueSets = new() { titles.Cast<object>().ToList() };
-        rawValueSets.AddRange(instances.Select(i => i.Save())
+        rawValueSets.AddRange(instances.Select(i => i.Convert())
+                                       .RemoveNulls()
                                        .Select(set => titles.Select(t => set[t] ?? "").ToList()));
         return sheetsProvider.UpdateValuesAsync(range, rawValueSets);
     }

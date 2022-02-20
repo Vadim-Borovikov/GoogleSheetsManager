@@ -13,7 +13,7 @@ internal sealed class TestInstance : ISavable
         return new TestInstance { Value = valueSet[Title]?.ToString() };
     }
 
-    public IDictionary<string, object?> Save() => new Dictionary<string, object?> { { Title, Value } };
+    public IDictionary<string, object?> Convert() => new Dictionary<string, object?> { { Title, Value } };
 
     private const string Title = "Title";
 }
