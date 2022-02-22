@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using GryphonUtilities;
 using JetBrains.Annotations;
 
 namespace GoogleSheetsManager;
@@ -46,23 +47,5 @@ public static class Utils
             long l   => DateTime.FromOADate(l),
             _        => null
         };
-    }
-
-    public static IEnumerable<T> RemoveNulls<T>(this IEnumerable<T?> seq)
-    {
-        return seq.Where(i => i is not null).Select(i => i.GetValue());
-    }
-    public static IEnumerable<T> RemoveNulls<T>(this IEnumerable<T?> seq) where T : struct
-    {
-        return seq.Where(i => i is not null).Select(i => i.GetValue());
-    }
-
-    public static T GetValue<T>(this T? param, string? message = null)
-    {
-        return param ?? throw new NullReferenceException(message);
-    }
-    public static T GetValue<T>(this T? param, string? message = null) where T : struct
-    {
-        return param ?? throw new NullReferenceException(message);
     }
 }
