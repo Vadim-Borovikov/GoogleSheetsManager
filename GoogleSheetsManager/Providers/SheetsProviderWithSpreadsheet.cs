@@ -74,23 +74,6 @@ public sealed class SheetsProviderWithSpreadsheet : SheetsProvider
         return new Request { DeleteSheet = request };
     }
 
-    private static Request CreateRenameSheetRequest(int? sheetId, string title)
-    {
-        SheetProperties properties = new()
-        {
-            SheetId = sheetId,
-            Title = title
-        };
-
-        UpdateSheetPropertiesRequest request = new()
-        {
-            Fields = "title",
-            Properties = properties
-        };
-
-        return new Request { UpdateSheetProperties = request };
-    }
-
     private Task<Spreadsheet> CreateNewAsync(SpreadsheetProperties properties)
     {
         Spreadsheet body = new() { Properties = properties };

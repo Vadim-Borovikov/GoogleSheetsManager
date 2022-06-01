@@ -56,6 +56,22 @@ public class SheetsProvider : IDisposable
         return request.ExecuteAsync();
     }
 
+    internal Task<Spreadsheet> LoadSpreadsheet()
+    {
+        SpreadsheetsResource.GetRequest request = Service.Spreadsheets.Get(SpreadsheetId);
+        request.IncludeGridData = true;
+        return request.ExecuteAsync();
+    }
+
+    internal Task RenameSheetAsync(int? sheetId, string title)
+    {
+        Request request = CreateRenameSheetRequest(sheetId, title);
+        List<Request> requests = new() { request };
+        BatchUpdateSpreadsheetRequest body = new() { Requests = requests };
+        SpreadsheetsResource.BatchUpdateRequest batchRequest = Service.Spreadsheets.BatchUpdate(body, SpreadsheetId);
+        return batchRequest.ExecuteAsync();
+    }
+
     protected static BaseClientService.Initializer CreateInitializer(string credentialJson, string applicationName)
     {
         GoogleCredential credential = GoogleCredential.FromJson(credentialJson).CreateScoped(Scopes);
@@ -64,6 +80,23 @@ public class SheetsProvider : IDisposable
             HttpClientInitializer = credential,
             ApplicationName = applicationName
         };
+    }
+
+    protected static Request CreateRenameSheetRequest(int? sheetId, string title)
+    {
+        SheetProperties properties = new()
+        {
+            SheetId = sheetId,
+            Title = title
+        };
+
+        UpdateSheetPropertiesRequest request = new()
+        {
+            Fields = "title",
+            Properties = properties
+        };
+
+        return new Request { UpdateSheetProperties = request };
     }
 
     private Task<ValueRange> GetValuesAsync(string range,
