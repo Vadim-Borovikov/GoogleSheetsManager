@@ -12,15 +12,17 @@ namespace GoogleSheetsManager;
 [PublicAPI]
 public static class DataManager
 {
-    public static async Task<IList<T>> GetValuesAsync<T>(SheetsProvider provider,
-        Func<IDictionary<string, object?>, T?> loader, string range, bool formula = false)
+    public static async Task<SheetData<T>> GetValuesAsync<T>(SheetsProvider provider, string range,
+        bool formula = false)
+        where T: class, new()
     {
         IList<IList<object>> rawValueSets = await provider.GetValueListAsync(range, formula);
         if (rawValueSets.Count < 1)
         {
-            return Array.Empty<T>();
+            return new SheetData<T>();
         }
-        List<string> titles = rawValueSets[0].Select(o => o.ToString() ?? "").ToList();
+        IList<string> titles = rawValueSets[0].Select(o => o.ToString() ?? "").ToList();
+
         List<T> instances = new();
         for (int i = 1; i < rawValueSets.Count; ++i)
         {
@@ -31,24 +33,26 @@ public static class DataManager
                 string title = titles[j];
                 valueSet[title] = j < rawValueSet.Count ? rawValueSet[j] : null;
             }
-            T? instance = loader(valueSet);
+
+            T? instance = Utils.Load<T>(valueSet);
             if (instance is not null)
             {
                 instances.Add(instance);
             }
         }
-        return instances;
+
+        return new SheetData<T>(instances, titles);
     }
 
-    public static Task UpdateValuesAsync<T>(SheetsProvider sheetsProvider, string range, IList<T> instances)
-        where T : ISavable
+    public static Task UpdateValuesAsync<T>(SheetsProvider provider, string range, SheetData<T> sheetData)
+        where T : class
     {
-        IList<string> titles = instances[0].Titles;
-        List<IList<object>> rawValueSets = new() { titles.Cast<object>().ToList() };
-        rawValueSets.AddRange(instances.Select(i => i.Convert())
+        List<IList<object>> rawValueSets = new() { sheetData.Titles.Cast<object>().ToList() };
+        rawValueSets.AddRange(sheetData.Instances
+                                       .Select(i => i.Save())
                                        .RemoveNulls()
-                                       .Select(set => titles.Select(t => set[t] ?? "").ToList()));
-        return sheetsProvider.UpdateValuesAsync(range, rawValueSets);
+                                       .Select(set => sheetData.Titles.Select(t => set[t] ?? "").ToList()));
+        return provider.UpdateValuesAsync(range, rawValueSets);
     }
 
     public static async Task<string> CopyForAsync(SheetsProviderWithSpreadsheet sheetsProvider, string name,
@@ -76,12 +80,13 @@ public static class DataManager
         await provider.RenameSheetAsync(sheet.Properties.SheetId, title);
     }
 
-    public static async Task<IList<T>> GetValuesAsync<T>(SheetsProvider provider,
-        Func<IDictionary<string, object?>, T?> loader, int sheetIndex, string range, bool formula = false)
+    public static async Task<SheetData<T>> GetValuesAsync<T>(SheetsProvider provider, int sheetIndex, string range,
+        bool formula = false)
+        where T: class, new()
     {
         Sheet sheet = await GetSheet(provider, sheetIndex);
         range = $"{sheet.Properties.Title}!{range}";
-        return await GetValuesAsync(provider, loader, range, formula);
+        return await GetValuesAsync<T>(provider, range, formula);
     }
 
     public static string GetHyperlink(Uri link, string text) => string.Format(HyperlinkFormat, link, text);

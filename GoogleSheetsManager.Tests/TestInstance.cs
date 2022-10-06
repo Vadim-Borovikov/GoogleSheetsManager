@@ -1,19 +1,22 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
+// ReSharper disable NullableWarningSuppressionIsUsed
 
 namespace GoogleSheetsManager.Tests;
 
-internal sealed class TestInstance : ISavable
+internal sealed class TestInstance
 {
-    public IList<string> Titles => new List<string> { Title };
+    [Required]
+    [SheetField("RequiredBoolTitle")]
+    public bool Bool;
 
-    public string? Value;
+    [SheetField("NullableIntTitle")]
+    public int? Int;
 
-    public static TestInstance Load(IDictionary<string, object?> valueSet)
-    {
-        return new TestInstance { Value = valueSet[Title]?.ToString() };
-    }
+    [Required]
+    [SheetField("RequiredStringTitle")]
+    public string String = null!;
 
-    public IDictionary<string, object?> Convert() => new Dictionary<string, object?> { { Title, Value } };
-
-    private const string Title = "Title";
+    [SheetField("NullableUriTitle")]
+    public Uri? Uri;
 }
