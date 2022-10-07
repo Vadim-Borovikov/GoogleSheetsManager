@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
-using GryphonUtilities;
 using JetBrains.Annotations;
 
 namespace GoogleSheetsManager;
@@ -103,7 +102,8 @@ public static class Utils
             }
 
             Type type = typeProvider(info);
-            object? value = Convert(valueSet[title], type);
+            Func<object?, object?>? converter = Converters.GetValueOrDefault(type);
+            object? value = converter?.Invoke(valueSet[title]);
             if (required && value is null or "")
             {
                 return null;
@@ -114,52 +114,6 @@ public static class Utils
         return result;
     }
 
-    private static object? Convert(object? value, Type type)
-    {
-        if ((type == typeof(bool)) || (type == typeof(bool?)))
-        {
-            return value.ToBool();
-        }
-        if ((type == typeof(byte)) || (type == typeof(byte?)))
-        {
-            return value.ToByte();
-        }
-        if ((type == typeof(ushort)) || (type == typeof(ushort?)))
-        {
-            return value.ToUshort();
-        }
-        if ((type == typeof(int)) || (type == typeof(int?)))
-        {
-            return value.ToInt();
-        }
-        if ((type == typeof(decimal)) || (type == typeof(decimal?)))
-        {
-            return value.ToDecimal();
-        }
-        if ((type == typeof(long)) || (type == typeof(long?)))
-        {
-            return value.ToLong();
-        }
-        if (type == typeof(Uri))
-        {
-            return value.ToUri();
-        }
-        if (type == typeof(List<Uri>))
-        {
-            return value.ToUris();
-        }
-        if ((type == typeof(DateTime)) || (type == typeof(DateTime?)))
-        {
-            return value.ToDateTime();
-        }
-        if ((type == typeof(TimeSpan)) || (type == typeof(TimeSpan?)))
-        {
-            return value.ToTimeSpan();
-        }
-
-        return value;
-    }
-
     private static bool? ToBool(this object? o)
     {
         if (o is bool b)
@@ -167,24 +121,6 @@ public static class Utils
             return b;
         }
         return bool.TryParse(o?.ToString(), out b) ? b : null;
-    }
-
-    private static byte? ToByte(this object? o)
-    {
-        if (o is byte b)
-        {
-            return b;
-        }
-        return byte.TryParse(o?.ToString(), out b) ? b : null;
-    }
-
-    private static ushort? ToUshort(this object? o)
-    {
-        if (o is ushort u)
-        {
-            return u;
-        }
-        return ushort.TryParse(o?.ToString(), out u) ? u : null;
     }
 
     private static int? ToInt(this object? o)
@@ -207,34 +143,6 @@ public static class Utils
         };
     }
 
-    private static long? ToLong(this object? o)
-    {
-        if (o is long l)
-        {
-            return l;
-        }
-        return long.TryParse(o?.ToString(), out l) ? l : null;
-    }
-
-    private static Uri? ToUri(this object? o)
-    {
-        if (o is Uri uri)
-        {
-            return uri;
-        }
-        string? uriString = o?.ToString();
-        return string.IsNullOrWhiteSpace(uriString) ? null : new Uri(uriString);
-    }
-
-    private static List<Uri>? ToUris(this object? o)
-    {
-        if (o is IEnumerable<Uri> l)
-        {
-            return l.ToList();
-        }
-        return o?.ToString()?.Split("\n").Select(ToUri).RemoveNulls().ToList();
-    }
-
     private static DateTime? ToDateTime(this object? o)
     {
         return o switch
@@ -254,4 +162,19 @@ public static class Utils
         }
         return ToDateTime(o)?.TimeOfDay;
     }
+
+    public static readonly Dictionary<Type, Func<object?, object?>> Converters = new()
+    {
+        { typeof(bool), v => ToBool(v) },
+        { typeof(bool?), v => ToBool(v) },
+        { typeof(int), v => ToInt(v) },
+        { typeof(int?), v => ToInt(v) },
+        { typeof(decimal), v => ToDecimal(v) },
+        { typeof(decimal?), v => ToDecimal(v) },
+        { typeof(string), v => v?.ToString() },
+        { typeof(DateTime), v => ToDateTime(v) },
+        { typeof(DateTime?), v => ToDateTime(v) },
+        { typeof(TimeSpan), v => ToTimeSpan(v) },
+        { typeof(TimeSpan?), v => ToTimeSpan(v) },
+    };
 }

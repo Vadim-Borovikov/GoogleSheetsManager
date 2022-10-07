@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 // ReSharper disable NullableWarningSuppressionIsUsed
 
 namespace GoogleSheetsManager.Tests;
@@ -15,8 +14,8 @@ internal sealed class TestInstance
 
     [Required]
     [SheetField("RequiredStringTitle")]
-    public string String = null!;
+    public string String1 = null!;
 
-    [SheetField("NullableUriTitle")]
-    public Uri? Uri;
+    [SheetField("NullableStringTitle")]
+    public string? String2;
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using GoogleSheetsManager.Providers;
@@ -51,13 +50,13 @@ public class DataManagerTests
         Assert.IsNull(data.Instances[1].Int);
         Assert.AreEqual(TestInstance.Int, data.Instances[2].Int);
 
-        Assert.AreEqual(TestInstance.String, data.Instances[0].String);
-        Assert.AreEqual(TestInstance.String, data.Instances[1].String);
-        Assert.AreEqual(TestInstance.String, data.Instances[2].String);
+        Assert.AreEqual(TestInstance.String1, data.Instances[0].String1);
+        Assert.AreEqual(TestInstance.String1, data.Instances[1].String1);
+        Assert.AreEqual(TestInstance.String1, data.Instances[2].String1);
 
-        Assert.AreEqual(TestInstance.Uri?.AbsoluteUri, data.Instances[0].Uri?.AbsoluteUri);
-        Assert.AreEqual(TestInstance.Uri?.AbsoluteUri, data.Instances[1].Uri?.AbsoluteUri);
-        Assert.IsNull(data.Instances[2].Uri);
+        Assert.AreEqual(TestInstance.String2, data.Instances[0].String2);
+        Assert.AreEqual(TestInstance.String2, data.Instances[1].String2);
+        Assert.IsNull(data.Instances[2].String2);
     }
 
     [TestMethod]
@@ -66,7 +65,7 @@ public class DataManagerTests
         SheetData<TestInstance> data = await DataManager.GetValuesAsync<TestInstance>(_provider, RangeUpdate);
 
         // ReSharper disable once NullableWarningSuppressionIsUsed
-        data.Instances[0].String = null!;
+        data.Instances[0].String1 = null!;
 
         await DataManager.UpdateValuesAsync(_provider, RangeGet, data);
         data = await DataManager.GetValuesAsync<TestInstance>(_provider, RangeUpdate);
@@ -76,7 +75,7 @@ public class DataManagerTests
         await DataManager.UpdateValuesAsync(_provider, RangeGet, data);
         data = await DataManager.GetValuesAsync<TestInstance>(_provider, RangeUpdate);
         Assert.AreEqual(1, data.Instances.Count);
-        Assert.AreEqual(TestInstance.String, data.Instances[0].String);
+        Assert.AreEqual(TestInstance.String1, data.Instances[0].String1);
     }
 
     [ClassCleanup]
@@ -92,7 +91,7 @@ public class DataManagerTests
     {
         Bool = false,
         Int = 32,
-        String = "fdgsdfg",
-        Uri = new Uri("https://ya.ru"),
+        String1 = "fdgsdfg",
+        String2 = "dlfnsdkfjgnsd"
     };
 }
