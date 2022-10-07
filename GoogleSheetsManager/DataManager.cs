@@ -44,6 +44,13 @@ public static class DataManager
         return new SheetData<T>(instances, titles);
     }
 
+    public static async Task<List<string>> GetTitlesAsync(SheetsProvider provider, string range)
+    {
+        range = Utils.GetFirstRow(range);
+        IList<IList<object>> rawValueSets = await provider.GetValueListAsync(range, false);
+        return rawValueSets[0].Select(o => o.ToString() ?? "").ToList();
+    }
+
     public static Task UpdateValuesAsync<T>(SheetsProvider provider, string range, SheetData<T> sheetData)
         where T : class
     {

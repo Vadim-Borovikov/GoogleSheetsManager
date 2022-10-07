@@ -33,6 +33,23 @@ public static class Utils
         return result;
     }
 
+    internal static string GetFirstRow(string range)
+    {
+        Range.Range? r = Range.Range.Parse(range);
+        if (r is null)
+        {
+            return range;
+        }
+
+        if (r.IntervalEnd is null)
+        {
+            return range;
+        }
+
+        r.IntervalEnd.Row = r.IntervalStart.Row;
+        return r.ToString();
+    }
+
     private static void Save<TInstance, TInfo>(this TInstance instance, Dictionary<string, object?> result,
         IEnumerable<TInfo> members, Func<TInfo, TInstance, object?> getter)
         where TInstance : class

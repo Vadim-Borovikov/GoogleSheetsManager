@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using GoogleSheetsManager.Providers;
@@ -26,6 +27,13 @@ public class DataManagerTests
 
         Assert.IsFalse(string.IsNullOrWhiteSpace(config.GoogleSheetId));
         _provider = new SheetsProvider(googleCredentialJson, ApplicationName, config.GoogleSheetId);
+    }
+
+    [TestMethod]
+    public async Task GetTitlesAsync()
+    {
+        List<string> titles = await DataManager.GetTitlesAsync(_provider, RangeGet);
+        Assert.AreEqual(4, titles.Count);
     }
 
     [TestMethod]
