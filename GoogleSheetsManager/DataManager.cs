@@ -96,7 +96,14 @@ public static class DataManager
         return await GetValuesAsync<T>(provider, range, formula);
     }
 
-    public static string GetHyperlink(Uri link, string text) => string.Format(HyperlinkFormat, link, text);
+    public static string GetHyperlink(Uri uri, string? caption = null)
+    {
+        if (string.IsNullOrWhiteSpace(caption))
+        {
+            caption = uri.AbsoluteUri;
+        }
+        return string.Format(HyperlinkFormat, uri.AbsoluteUri, caption);
+    }
 
     private static async Task CopyContentAsync(SheetsProviderWithSpreadsheet from, SheetsProviderWithSpreadsheet to)
     {
