@@ -88,7 +88,7 @@ public static class Utils
                 {
                     case RequiredAttribute: required = true;
                         break;
-                    case SheetFieldAttribute sheetField: title = sheetField.Title;
+                    case SheetFieldAttribute sheetField: title = sheetField.Title ?? info.Name;
                         break;
                 }
             }
