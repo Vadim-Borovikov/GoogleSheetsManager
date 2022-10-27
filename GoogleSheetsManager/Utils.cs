@@ -63,7 +63,8 @@ public static class Utils
             }
 
             object? value = getter(info, instance);
-            result[sheetField.Title] = sheetField.Format is null ? value : string.Format(sheetField.Format, value);
+            string title = sheetField.Title ?? info.Name;
+            result[title] = sheetField.Format is null ? value : string.Format(sheetField.Format, value);
         }
     }
 
