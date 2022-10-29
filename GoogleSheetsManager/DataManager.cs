@@ -1,150 +1,164 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Threading.Tasks;
-using Google.Apis.Sheets.v4.Data;
+using System.Reflection;
 using GoogleSheetsManager.Providers;
+using System.Threading.Tasks;
 using GryphonUtilities;
 using JetBrains.Annotations;
 
 namespace GoogleSheetsManager;
 
 [PublicAPI]
-public static class DataManager
+public static class DataManager<T>
+    where T : class, new()
 {
-    public static async Task<SheetData<T>> GetValuesAsync<T>(SheetsProvider provider, string range,
-        bool formula = false)
-        where T: class, new()
+    public static async Task<SheetData<T>> LoadAsync(SheetsProvider provider, string range, int? sheetIndex = null,
+        bool formula = false, IDictionary<Type, Func<object?, object?>>? additionalConverters = null,
+        ICollection<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
     {
-        IList<IList<object>> rawValueSets = await provider.GetValueListAsync(range, formula);
-        if (rawValueSets.Count < 1)
+        SheetData<Dictionary<string, object?>> data = await Utils.LoadAsync(provider, range, sheetIndex, formula);
+        return Load(data, additionalConverters, additionalLoaders);
+    }
+
+    public static Task SaveAsync(SheetsProvider provider, string range, SheetData<T> data,
+        IEnumerable<Action<T, IDictionary<string, object?>>>? additionalSavers = null)
+    {
+        List<Dictionary<string, object?>> instances = data.Instances.Select(i => Save(i, additionalSavers)).ToList();
+        SheetData<Dictionary<string, object?>> savedData = new(instances, data.Titles);
+        return Utils.SaveAsync(provider, range, savedData);
+    }
+
+    private static SheetData<T> Load(SheetData<Dictionary<string, object?>> data,
+        IDictionary<Type, Func<object?, object?>>? additionalConverters = null,
+        ICollection<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
+    {
+        if (data.Instances.Count < 1)
         {
             return new SheetData<T>();
         }
-        IList<string> titles = rawValueSets[0].Select(o => o.ToString() ?? "").ToList();
 
-        List<T> instances = new();
-        for (int i = 1; i < rawValueSets.Count; ++i)
+        List<T> instances = data.Instances
+                                .Select(set => Load(set, additionalConverters, additionalLoaders))
+                                .RemoveNulls()
+                                .ToList();
+        return new SheetData<T>(instances, data.Titles);
+    }
+
+    private static T? Load(IDictionary<string, object?> valueSet,
+        IDictionary<Type, Func<object?, object?>>? additionalConverters = null,
+        IEnumerable<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
+    {
+        T? result = new();
+        Type type = typeof(T);
+        result = Load(valueSet, result, type.GetProperties(), info => info.PropertyType,
+            (info, obj, val) => info.SetValue(obj, val), additionalConverters);
+        result = Load(valueSet, result, type.GetFields(), info => info.FieldType,
+            (info, obj, val) => info.SetValue(obj, val), additionalConverters);
+        if (additionalLoaders is not null)
         {
-            Dictionary<string, object?> valueSet = new();
-            IList<object> rawValueSet = rawValueSets[i];
-            for (int j = 0; j < titles.Count; ++j)
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            foreach (Func<IDictionary<string, object?>, T?, T?> loader in additionalLoaders)
             {
-                string title = titles[j];
-                valueSet[title] = j < rawValueSet.Count ? rawValueSet[j] : null;
+                result = loader(valueSet, result);
+            }
+        }
+        return result;
+    }
+
+    private static TInstance? Load<TInstance, TInfo>(IDictionary<string, object?> valueSet, TInstance? result,
+        IEnumerable<TInfo> members, Func<TInfo, Type> typeProvider, Action<TInfo, TInstance, object?> setter,
+        IDictionary<Type, Func<object?, object?>>? additionalConverters)
+        where TInstance : class
+        where TInfo : MemberInfo
+    {
+        if (result is null)
+        {
+            return null;
+        }
+
+        Dictionary<Type, Func<object?, object?>> converters =
+            Utils.DefaultConverters.ToDictionary(p => p.Key, p => p.Value);
+        if (additionalConverters is not null)
+        {
+            foreach (Type type in additionalConverters.Keys)
+            {
+                converters[type] = additionalConverters[type];
+            }
+        }
+
+        foreach (TInfo info in members)
+        {
+            bool required = false;
+            string? title = null;
+            foreach (Attribute attribute in info.GetCustomAttributes())
+            {
+                switch (attribute)
+                {
+                    case RequiredAttribute:
+                        required = true;
+                        break;
+                    case SheetFieldAttribute sheetField:
+                        title = sheetField.Title ?? info.Name;
+                        break;
+                }
             }
 
-            T? instance = Utils.Load<T>(valueSet);
-            if (instance is not null)
+            if (title is null)
             {
-                instances.Add(instance);
-            }
-        }
-
-        return new SheetData<T>(instances, titles);
-    }
-
-    public static async Task<List<string>> GetTitlesAsync(SheetsProvider provider, string range)
-    {
-        range = Utils.GetFirstRow(range);
-        IList<IList<object>> rawValueSets = await provider.GetValueListAsync(range, false);
-        return rawValueSets[0].Select(o => o.ToString() ?? "").ToList();
-    }
-
-    public static Task UpdateValuesAsync<T>(SheetsProvider provider, string range, SheetData<T> sheetData)
-        where T : class
-    {
-        List<IList<object>> rawValueSets = new() { sheetData.Titles.Cast<object>().ToList() };
-        rawValueSets.AddRange(sheetData.Instances
-                                       .Select(i => i.Save())
-                                       .RemoveNulls()
-                                       .Select(set => sheetData.Titles.Select(t => set[t] ?? "").ToList()));
-        return provider.UpdateValuesAsync(range, rawValueSets);
-    }
-
-    public static async Task<string> CopyForAsync(SheetsProviderWithSpreadsheet sheetsProvider, string name,
-        string folderId, string ownerEmail)
-    {
-        using (SheetsProviderWithSpreadsheet newSheetsProvider = await sheetsProvider.CreateNewWithPropertiesAsync())
-        {
-            await CopyContentAsync(sheetsProvider, newSheetsProvider);
-
-            using (DriveProvider driveProvider =
-                new(sheetsProvider.ServiceInitializer, newSheetsProvider.SpreadsheetId))
-            {
-                await SetupPermissionsForAsync(driveProvider, ownerEmail);
-
-                await MoveAndRenameAsync(driveProvider, name, folderId);
+                continue;
             }
 
-            return newSheetsProvider.SpreadsheetId;
+            if (required && !valueSet.ContainsKey(title))
+            {
+                return null;
+            }
+
+            Type type = typeProvider(info);
+            Func<object?, object?>? converter = converters.GetValueOrDefault(type);
+            object? value = converter?.Invoke(valueSet[title]);
+            if (required && value is null or "")
+            {
+                return null;
+            }
+            setter(info, result, value);
         }
-    }
 
-    public static async Task RenameSheetAsync(SheetsProvider provider, int sheetIndex, string title)
-    {
-        Sheet sheet = await GetSheet(provider, sheetIndex);
-        await provider.RenameSheetAsync(sheet.Properties.SheetId, title);
+        return result;
     }
-
-    public static async Task<SheetData<T>> GetValuesAsync<T>(SheetsProvider provider, int sheetIndex, string range,
-        bool formula = false)
-        where T: class, new()
+    private static Dictionary<string, object?> Save(T instance,
+        IEnumerable<Action<T, IDictionary<string, object?>>>? additionalSavers = null)
     {
-        Sheet sheet = await GetSheet(provider, sheetIndex);
-        range = $"{sheet.Properties.Title}!{range}";
-        return await GetValuesAsync<T>(provider, range, formula);
-    }
-
-    public static string GetHyperlink(Uri uri, string? caption = null)
-    {
-        if (string.IsNullOrWhiteSpace(caption))
+        Dictionary<string, object?> result = new();
+        Type type = typeof(T);
+        Save(instance, result, type.GetProperties(), (info, obj) => info.GetValue(obj));
+        Save(instance, result, type.GetFields(), (info, obj) => info.GetValue(obj));
+        if (additionalSavers is not null)
         {
-            caption = uri.AbsoluteUri;
+            foreach (Action<T, IDictionary<string, object?>> saver in additionalSavers)
+            {
+                saver(instance, result);
+            }
         }
-        return string.Format(HyperlinkFormat, uri.AbsoluteUri, caption);
+        return result;
     }
 
-    private static async Task CopyContentAsync(SheetsProviderWithSpreadsheet from, SheetsProviderWithSpreadsheet to)
+    private static void Save<TInfo>(T instance, Dictionary<string, object?> result, IEnumerable<TInfo> members,
+        Func<TInfo, T, object?> getter)
+        where TInfo : MemberInfo
     {
-        to.PlanToDeleteSheets();
-        await to.CopyContentAndPlanToRenameSheetsAsync(from);
-        await to.ExecutePlanned();
-    }
-
-    private static async Task SetupPermissionsForAsync(DriveProvider provider, string ownerEmail)
-    {
-        IEnumerable<string> oldPermissionIds = await provider.GetPermissionIdsAsync();
-
-        await AddPermissionToAsync(provider, "owner", "user", ownerEmail);
-
-        await AddPermissionToAsync(provider, "writer", "anyone");
-
-        foreach (string id in oldPermissionIds)
+        foreach (TInfo info in members)
         {
-            await provider.DowngradePermissionAsync(id);
+            SheetFieldAttribute? sheetField = info.GetCustomAttributes<SheetFieldAttribute>(true).SingleOrDefault();
+            if (sheetField is null)
+            {
+                continue;
+            }
+
+            object? value = getter(info, instance);
+            string title = sheetField.Title ?? info.Name;
+            result[title] = sheetField.Format is null ? value : string.Format(sheetField.Format, value);
         }
     }
-
-    private static Task AddPermissionToAsync(DriveProvider provider, string role, string type,
-        string? emailAddress = null)
-    {
-        bool transferOwnership = role is "owner";
-        return provider.AddPermissionToAsync(type, role, emailAddress, transferOwnership);
-    }
-
-    private static async Task MoveAndRenameAsync(DriveProvider provider, string name, string folderId)
-    {
-        IList<string> oldParentLists = await provider.GetParentsAsync();
-        string oldParents = string.Join(',', oldParentLists);
-        await provider.MoveAndRenameAsync(name, folderId, oldParents);
-    }
-
-    private static async Task<Sheet> GetSheet(SheetsProvider provider, int sheetIndex)
-    {
-        Spreadsheet spreadsheet = await provider.LoadSpreadsheet();
-        return spreadsheet.Sheets[sheetIndex];
-    }
-
-    private const string HyperlinkFormat = "=HYPERLINK(\"{0}\";\"{1}\")";
 }

@@ -29,16 +29,16 @@ public class DataManagerTests
     }
 
     [TestMethod]
-    public async Task GetTitlesAsync()
+    public async Task LoadTitlesAsyncTest()
     {
-        List<string> titles = await DataManager.GetTitlesAsync(_provider, RangeGet);
+        List<string> titles = await Utils.LoadTitlesAsync(_provider, RangeGet);
         Assert.AreEqual(4, titles.Count);
     }
 
     [TestMethod]
-    public async Task GetValuesAsyncTest()
+    public async Task LoadAsyncTest()
     {
-        SheetData<TestInstance> data = await DataManager.GetValuesAsync<TestInstance>(_provider, RangeGet);
+        SheetData<TestInstance> data = await DataManager<TestInstance>.LoadAsync(_provider, RangeGet);
         Assert.AreEqual(4, data.Titles.Count);
         Assert.AreEqual(3, data.Instances.Count);
 
@@ -60,20 +60,20 @@ public class DataManagerTests
     }
 
     [TestMethod]
-    public async Task UpdateValuesAsyncTest()
+    public async Task SaveAsyncTest()
     {
-        SheetData<TestInstance> data = await DataManager.GetValuesAsync<TestInstance>(_provider, RangeUpdate);
+        SheetData<TestInstance> data = await DataManager<TestInstance>.LoadAsync(_provider, RangeUpdate);
 
         // ReSharper disable once NullableWarningSuppressionIsUsed
         data.Instances[0].String1 = null!;
 
-        await DataManager.UpdateValuesAsync(_provider, RangeGet, data);
-        data = await DataManager.GetValuesAsync<TestInstance>(_provider, RangeUpdate);
+        await DataManager<TestInstance>.SaveAsync(_provider, RangeGet, data);
+        data = await DataManager<TestInstance>.LoadAsync(_provider, RangeUpdate);
         Assert.AreEqual(0, data.Instances.Count);
 
         data.Instances.Add(TestInstance);
-        await DataManager.UpdateValuesAsync(_provider, RangeGet, data);
-        data = await DataManager.GetValuesAsync<TestInstance>(_provider, RangeUpdate);
+        await DataManager<TestInstance>.SaveAsync(_provider, RangeGet, data);
+        data = await DataManager<TestInstance>.LoadAsync(_provider, RangeUpdate);
         Assert.AreEqual(1, data.Instances.Count);
         Assert.AreEqual(TestInstance.String1, data.Instances[0].String1);
     }
