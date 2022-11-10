@@ -54,7 +54,7 @@ public static class Utils
     {
         List<IList<object>> rawValueSets = new() { data.Titles.Cast<object>().ToList() };
         rawValueSets.AddRange(data.Instances
-                                  .Select(set => data.Titles.Select(t => set[t] ?? "").ToList()));
+                                  .Select(set => data.Titles.Select(t => set.TryGetValue(t) ?? "").ToList()));
         return provider.UpdateValuesAsync(range, rawValueSets);
     }
 
@@ -202,6 +202,12 @@ public static class Utils
 
         r.IntervalEnd.Row = r.IntervalStart.Row;
         return r.ToString();
+    }
+
+    private static object? TryGetValue(this Dictionary<string, object?> set, string key)
+    {
+        set.TryGetValue(key, out object? o);
+        return o;
     }
 
     internal static readonly Dictionary<Type, Func<object?, object?>> DefaultConverters = new()
