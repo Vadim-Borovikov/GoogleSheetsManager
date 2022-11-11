@@ -14,13 +14,13 @@ public class DataManagerTests
     [ClassInitialize]
     public static void ClassInitialize(TestContext _)
     {
-        ConfigJson config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
-                                                         // Create appsettings.json for private settings
-                                                         .AddJsonFile("appsettings.json")
-                                                         .Build()
-                                                         .Get<ConfigJson>();
+        ConfigJson? config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
+                                                       // Create appsettings.json for private settings
+                                                       .AddJsonFile("appsettings.json")
+                                                       .Build()
+                                                       .Get<ConfigJson>();
 
-        Assert.IsNotNull(config.GoogleCredential);
+        Assert.IsNotNull(config?.GoogleCredential);
         string googleCredentialJson = JsonConvert.SerializeObject(config.GoogleCredential);
         Assert.IsFalse(string.IsNullOrWhiteSpace(googleCredentialJson));
 
