@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
@@ -10,14 +11,14 @@ using JetBrains.Annotations;
 namespace GoogleSheetsManager.Providers;
 
 [PublicAPI]
-public class SheetsProvider : IDisposable
+public sealed class SheetsProvider : IDisposable
 {
     public SheetsProvider(string credentialJson, string applicationName, string spreadsheetId)
         : this(CreateInitializer(credentialJson, applicationName), spreadsheetId)
     {
     }
 
-    protected SheetsProvider(BaseClientService.Initializer initializer, SheetsService service, string spreadsheetId)
+    internal SheetsProvider(BaseClientService.Initializer initializer, SheetsService service, string spreadsheetId)
     {
         ServiceInitializer = initializer;
         Service = service;
@@ -56,10 +57,36 @@ public class SheetsProvider : IDisposable
         return request.ExecuteAsync();
     }
 
-    internal Task<Spreadsheet> LoadSpreadsheet()
+    internal Task<Spreadsheet> LoadSpreadsheetAsync()
     {
         SpreadsheetsResource.GetRequest request = Service.Spreadsheets.Get(SpreadsheetId);
         request.IncludeGridData = true;
+        return request.ExecuteAsync();
+    }
+
+    internal async Task CopyContentAndPlanToRenameSheetsAsync(SheetsProvider from, Spreadsheet spreadsheet)
+    {
+        foreach (Sheet sheet in spreadsheet.Sheets.Where(s => s.Properties.SheetId.HasValue))
+        {
+            // ReSharper disable once NullableWarningSuppressionIsUsed
+            //   sheet.Properties.SheetId is null-checked already
+            SheetProperties properties = await from.CopyToAsync(SpreadsheetId, sheet.Properties.SheetId!.Value);
+            Request renameRequest = CreateRenameSheetRequest(properties.SheetId, sheet.Properties.Title);
+            _requestsToExecute.Add(renameRequest);
+        }
+    }
+
+    internal Task ExecutePlannedAsync()
+    {
+        BatchUpdateSpreadsheetRequest body = new() { Requests = _requestsToExecute };
+        SpreadsheetsResource.BatchUpdateRequest request = new(Service, body, SpreadsheetId);
+        return request.ExecuteAsync();
+    }
+
+    private Task<SheetProperties> CopyToAsync(string destinationSpreadsheetId, int sheetId)
+    {
+        CopySheetToAnotherSpreadsheetRequest body = new() { DestinationSpreadsheetId = destinationSpreadsheetId };
+        SpreadsheetsResource.SheetsResource.CopyToRequest request = new(Service, body, SpreadsheetId, sheetId);
         return request.ExecuteAsync();
     }
 
@@ -72,7 +99,28 @@ public class SheetsProvider : IDisposable
         return batchRequest.ExecuteAsync();
     }
 
-    protected static BaseClientService.Initializer CreateInitializer(string credentialJson, string applicationName)
+    internal Task<Spreadsheet> CreateNewSpreadsheetAsync(SpreadsheetProperties properties)
+    {
+        Spreadsheet body = new() { Properties = properties };
+        SpreadsheetsResource.CreateRequest request = new(Service, body);
+        return request.ExecuteAsync();
+    }
+
+    internal void PlanToDeleteSheets(Spreadsheet spreadsheet)
+    {
+        _requestsToExecute.Clear();
+        _requestsToExecute.AddRange(spreadsheet.Sheets.Select(s => CreateDeleteSheetRequest(s.Properties.SheetId)));
+    }
+
+    private static Request CreateDeleteSheetRequest(int? sheetId)
+    {
+        DeleteSheetRequest request = new() { SheetId = sheetId };
+        return new Request { DeleteSheet = request };
+    }
+
+    private readonly List<Request> _requestsToExecute = new();
+
+    private static BaseClientService.Initializer CreateInitializer(string credentialJson, string applicationName)
     {
         GoogleCredential credential = GoogleCredential.FromJson(credentialJson).CreateScoped(Scopes);
         return new BaseClientService.Initializer
@@ -82,7 +130,7 @@ public class SheetsProvider : IDisposable
         };
     }
 
-    protected static Request CreateRenameSheetRequest(int? sheetId, string title)
+    private static Request CreateRenameSheetRequest(int? sheetId, string title)
     {
         SheetProperties properties = new()
         {
@@ -102,7 +150,8 @@ public class SheetsProvider : IDisposable
     private Task<ValueRange> GetValuesAsync(string range,
         SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum valueRenderOption)
     {
-        SpreadsheetsResource.ValuesResource.GetRequest request = Service.Spreadsheets.Values.Get(SpreadsheetId, range);
+        SpreadsheetsResource.ValuesResource.GetRequest request =
+            Service.Spreadsheets.Values.Get(SpreadsheetId, range);
         request.ValueRenderOption = valueRenderOption;
         request.DateTimeRenderOption =
             SpreadsheetsResource.ValuesResource.GetRequest.DateTimeRenderOptionEnum.SERIALNUMBER;
@@ -111,8 +160,7 @@ public class SheetsProvider : IDisposable
 
     internal readonly BaseClientService.Initializer ServiceInitializer;
     internal readonly string SpreadsheetId;
+    internal readonly SheetsService Service;
 
     private static readonly string[] Scopes = { SheetsService.Scope.Drive };
-
-    protected readonly SheetsService Service;
 }

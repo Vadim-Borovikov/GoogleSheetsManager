@@ -16,7 +16,7 @@ public static class Utils
     {
         if (sheetIndex.HasValue)
         {
-            Sheet sheet = await GetSheet(provider, sheetIndex.Value);
+            Sheet sheet = await GetSheetAsync(provider, sheetIndex.Value);
             range = $"{sheet.Properties.Title}!{range}";
         }
 
@@ -58,28 +58,29 @@ public static class Utils
         return provider.UpdateValuesAsync(range, rawValueSets);
     }
 
-    public static async Task<string> CopyForAsync(SheetsProviderWithSpreadsheet sheetsProvider, string name,
-        string folderId, string ownerEmail)
+    public static async Task<string> CopyForAsync(SheetsProvider from, string name, string folderId, string ownerEmail)
     {
-        using (SheetsProviderWithSpreadsheet newSheetsProvider = await sheetsProvider.CreateNewWithPropertiesAsync())
+        Spreadsheet fromSpreadsheet = await from.LoadSpreadsheetAsync();
+        Spreadsheet toSpreadsheet = await from.CreateNewSpreadsheetAsync(fromSpreadsheet.Properties);
+        using (SheetsProvider to = new(from.ServiceInitializer, from.Service, toSpreadsheet.SpreadsheetId))
         {
-            await CopyContentAsync(sheetsProvider, newSheetsProvider);
+            to.PlanToDeleteSheets(toSpreadsheet);
+            await to.CopyContentAndPlanToRenameSheetsAsync(from, fromSpreadsheet);
+            await to.ExecutePlannedAsync();
 
-            using (DriveProvider driveProvider =
-                   new(sheetsProvider.ServiceInitializer, newSheetsProvider.SpreadsheetId))
+            using (DriveProvider driveProvider = new(from.ServiceInitializer, to.SpreadsheetId))
             {
                 await SetupPermissionsForAsync(driveProvider, ownerEmail);
-
                 await MoveAndRenameAsync(driveProvider, name, folderId);
             }
 
-            return newSheetsProvider.SpreadsheetId;
+            return to.SpreadsheetId;
         }
     }
 
     public static async Task RenameSheetAsync(SheetsProvider provider, int sheetIndex, string title)
     {
-        Sheet sheet = await GetSheet(provider, sheetIndex);
+        Sheet sheet = await GetSheetAsync(provider, sheetIndex);
         await provider.RenameSheetAsync(sheet.Properties.SheetId, title);
     }
 
@@ -146,13 +147,6 @@ public static class Utils
         return rawValueSet.Select(o => o.ToString() ?? "");
     }
 
-    private static async Task CopyContentAsync(SheetsProviderWithSpreadsheet from, SheetsProviderWithSpreadsheet to)
-    {
-        to.PlanToDeleteSheets();
-        await to.CopyContentAndPlanToRenameSheetsAsync(from);
-        await to.ExecutePlanned();
-    }
-
     private static async Task SetupPermissionsForAsync(DriveProvider provider, string ownerEmail)
     {
         IEnumerable<string> oldPermissionIds = await provider.GetPermissionIdsAsync();
@@ -181,9 +175,9 @@ public static class Utils
         await provider.MoveAndRenameAsync(name, folderId, oldParents);
     }
 
-    private static async Task<Sheet> GetSheet(SheetsProvider provider, int sheetIndex)
+    private static async Task<Sheet> GetSheetAsync(SheetsProvider provider, int sheetIndex)
     {
-        Spreadsheet spreadsheet = await provider.LoadSpreadsheet();
+        Spreadsheet spreadsheet = await provider.LoadSpreadsheetAsync();
         return spreadsheet.Sheets[sheetIndex];
     }
 
