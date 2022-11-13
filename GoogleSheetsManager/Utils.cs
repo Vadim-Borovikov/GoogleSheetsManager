@@ -58,7 +58,7 @@ public static class Utils
         return provider.UpdateValuesAsync(range, rawValueSets);
     }
 
-    public static async Task<string> CopyForAsync(SheetsProvider from, string name, string folderId, string ownerEmail)
+    public static async Task<string> CopyForAsync(SheetsProvider from, string name, string folderId)
     {
         Spreadsheet fromSpreadsheet = await from.LoadSpreadsheetAsync();
         Spreadsheet toSpreadsheet = await from.CreateNewSpreadsheetAsync(fromSpreadsheet.Properties);
@@ -70,11 +70,19 @@ public static class Utils
 
             using (DriveProvider driveProvider = new(from.ServiceInitializer, to.SpreadsheetId))
             {
-                await SetupPermissionsForAsync(driveProvider, ownerEmail);
+                await driveProvider.AddPermissionToAsync("anyone", "writer", null);
                 await MoveAndRenameAsync(driveProvider, name, folderId);
             }
 
             return to.SpreadsheetId;
+        }
+    }
+
+    public static async Task DeleteSpreadsheetAsync(SheetsProvider provider, string fileId)
+    {
+        using (DriveProvider driveProvider = new(provider.ServiceInitializer, fileId))
+        {
+            await driveProvider.DeleteSpreadsheetAsync();
         }
     }
 
@@ -145,27 +153,6 @@ public static class Utils
     private static IEnumerable<string> GetTitles(IEnumerable<object> rawValueSet)
     {
         return rawValueSet.Select(o => o.ToString() ?? "");
-    }
-
-    private static async Task SetupPermissionsForAsync(DriveProvider provider, string ownerEmail)
-    {
-        IEnumerable<string> oldPermissionIds = await provider.GetPermissionIdsAsync();
-
-        await AddPermissionToAsync(provider, "owner", "user", ownerEmail);
-
-        await AddPermissionToAsync(provider, "writer", "anyone");
-
-        foreach (string id in oldPermissionIds)
-        {
-            await provider.DowngradePermissionAsync(id);
-        }
-    }
-
-    private static Task AddPermissionToAsync(DriveProvider provider, string role, string type,
-        string? emailAddress = null)
-    {
-        bool transferOwnership = role is "owner";
-        return provider.AddPermissionToAsync(type, role, emailAddress, transferOwnership);
     }
 
     private static async Task MoveAndRenameAsync(DriveProvider provider, string name, string folderId)

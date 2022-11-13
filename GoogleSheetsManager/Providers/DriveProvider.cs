@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Google.Apis.Drive.v3;
 using Google.Apis.Drive.v3.Data;
@@ -18,13 +17,11 @@ internal sealed class DriveProvider : IDisposable
 
     public void Dispose() => _service.Dispose();
 
-    public async Task<IEnumerable<string>> GetPermissionIdsAsync()
+    public Task DeleteSpreadsheetAsync()
     {
-        PermissionList permissions = await GetPermissionsAsync();
-        return permissions.Permissions.Select(p => p.Id);
+        FilesResource.DeleteRequest request = new(_service, _fileId);
+        return request.ExecuteAsync();
     }
-
-    public Task DowngradePermissionAsync(string id) => UpdatePermissionAsync(id, "reader");
 
     public async Task<IList<string>> GetParentsAsync()
     {
@@ -43,7 +40,7 @@ internal sealed class DriveProvider : IDisposable
         await request.ExecuteAsync();
     }
 
-    public Task AddPermissionToAsync(string type, string role, string? emailAddress, bool transferOwnership)
+    public Task AddPermissionToAsync(string type, string role, string? emailAddress)
     {
         Permission body = new()
         {
@@ -53,24 +50,7 @@ internal sealed class DriveProvider : IDisposable
         };
 
         PermissionsResource.CreateRequest request = _service.Permissions.Create(body, _fileId);
-        request.TransferOwnership = transferOwnership;
 
-        return request.ExecuteAsync();
-    }
-
-    private Task<PermissionList> GetPermissionsAsync()
-    {
-        PermissionsResource.ListRequest request = _service.Permissions.List(_fileId);
-        return request.ExecuteAsync();
-    }
-
-    private Task UpdatePermissionAsync(string id, string role)
-    {
-        Permission body = new()
-        {
-            Role = role
-        };
-        PermissionsResource.UpdateRequest request = _service.Permissions.Update(body, _fileId, id);
         return request.ExecuteAsync();
     }
 
