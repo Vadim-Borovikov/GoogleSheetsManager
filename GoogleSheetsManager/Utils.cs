@@ -125,12 +125,22 @@ public static class Utils
         {
             decimal dec => dec,
             long l      => l,
-            double d    => (decimal)d,
+            double d    => (decimal) d,
             _           => null
         };
     }
 
-    public static DateTime? ToDateTime(this object? o)
+    public static DateTimeOffset? ToDateTimeOffset(this object? o)
+    {
+        if (o is DateTimeOffset d)
+        {
+            return d;
+        }
+        DateTime? dateTime = o?.ToDateTime();
+        return dateTime is null ? null : new DateTimeOffset(dateTime.Value);
+    }
+
+    private static DateTime? ToDateTime(this object? o)
     {
         return o switch
         {
@@ -139,15 +149,6 @@ public static class Utils
             long l      => DateTime.FromOADate(l),
             _           => null
         };
-    }
-
-    public static TimeSpan? ToTimeSpan(this object? o)
-    {
-        if (o is TimeSpan ts)
-        {
-            return ts;
-        }
-        return ToDateTime(o)?.TimeOfDay;
     }
 
     private static IEnumerable<string> GetTitles(IEnumerable<object> rawValueSet)
@@ -200,10 +201,8 @@ public static class Utils
         { typeof(decimal), v => ToDecimal(v) },
         { typeof(decimal?), v => ToDecimal(v) },
         { typeof(string), v => v?.ToString() },
-        { typeof(DateTime), v => ToDateTime(v) },
-        { typeof(DateTime?), v => ToDateTime(v) },
-        { typeof(TimeSpan), v => ToTimeSpan(v) },
-        { typeof(TimeSpan?), v => ToTimeSpan(v) },
+        { typeof(DateTimeOffset), v => ToDateTimeOffset(v) },
+        { typeof(DateTimeOffset?), v => ToDateTimeOffset(v) },
     };
 
     private const string HyperlinkFormat = "=HYPERLINK(\"{0}\";\"{1}\")";
