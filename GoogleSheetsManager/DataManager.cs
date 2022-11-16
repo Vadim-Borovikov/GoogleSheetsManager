@@ -110,14 +110,9 @@ public static class DataManager<T>
                 continue;
             }
 
-            if (required && !valueSet.ContainsKey(title))
-            {
-                return null;
-            }
-
             Type type = typeProvider(info);
             Func<object?, object?>? converter = converters.GetValueOrDefault(type);
-            object? value = converter?.Invoke(valueSet[title]);
+            object? value = valueSet.TryGetValue(title, out object? rawValue) ? converter?.Invoke(rawValue) : null;
             if (required && value is null or "")
             {
                 return null;
