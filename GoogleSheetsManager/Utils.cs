@@ -5,6 +5,7 @@ using GoogleSheetsManager.Providers;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Google.Apis.Sheets.v4.Data;
+using GryphonUtilities;
 
 namespace GoogleSheetsManager;
 
@@ -130,11 +131,31 @@ public static class Utils
         };
     }
 
-    public static DateTime? ToDateTime(this object? o)
+    public static DateTimeFull? ToDateTimeFull(this object? o, TimeZoneInfo timeZoneInfo)
+    {
+        if (o is DateTimeFull dtf)
+        {
+            return dtf;
+        }
+
+        if (o is DateTimeOffset dto)
+        {
+            return new DateTimeFull(dto, timeZoneInfo);
+        }
+
+        DateTime? dt = o?.ToDateTime();
+        if (dt is null)
+        {
+            return null;
+        }
+        dto = new DateTimeOffset(dt.Value, timeZoneInfo.BaseUtcOffset);
+        return new DateTimeFull(dto, timeZoneInfo);
+    }
+
+    private static DateTime? ToDateTime(this object? o)
     {
         return o switch
         {
-            DateTime dt => dt,
             double d    => DateTime.FromOADate(d),
             long l      => DateTime.FromOADate(l),
             _           => null
