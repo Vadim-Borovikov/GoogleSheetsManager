@@ -130,17 +130,7 @@ public static class Utils
         };
     }
 
-    public static DateTimeOffset? ToDateTimeOffset(this object? o)
-    {
-        if (o is DateTimeOffset d)
-        {
-            return d;
-        }
-        DateTime? dateTime = o?.ToDateTime();
-        return dateTime is null ? null : new DateTimeOffset(dateTime.Value);
-    }
-
-    private static DateTime? ToDateTime(this object? o)
+    public static DateTime? ToDateTime(this object? o)
     {
         return o switch
         {
@@ -201,8 +191,6 @@ public static class Utils
         { typeof(decimal), v => ToDecimal(v) },
         { typeof(decimal?), v => ToDecimal(v) },
         { typeof(string), v => v?.ToString() },
-        { typeof(DateTimeOffset), v => ToDateTimeOffset(v) },
-        { typeof(DateTimeOffset?), v => ToDateTimeOffset(v) },
     };
 
     private const string HyperlinkFormat = "=HYPERLINK(\"{0}\";\"{1}\")";
