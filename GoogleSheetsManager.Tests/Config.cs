@@ -1,13 +1,12 @@
 ﻿using System.Collections.Generic;
-using Newtonsoft.Json;
+using JetBrains.Annotations;
 
 namespace GoogleSheetsManager.Tests;
 
-internal sealed class ConfigJson
+internal sealed class Config
 {
-    [JsonProperty]
+    [UsedImplicitly]
     public Dictionary<string, string?>? GoogleCredential { get; set; }
-
-    [JsonProperty]
+    [UsedImplicitly]
     public string? GoogleSheetId { get; set; }
 }

@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using GoogleSheetsManager.Providers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
 
 namespace GoogleSheetsManager.Tests;
 
@@ -14,14 +14,14 @@ public class UtilsTests
     [ClassInitialize]
     public static void ClassInitialize(TestContext _)
     {
-        ConfigJson? config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
-                                                       // Create appsettings.json for private settings
-                                                       .AddJsonFile("appsettings.json")
-                                                       .Build()
-                                                       .Get<ConfigJson>();
+        Config? config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
+                                                   // Create appsettings.json for private settings
+                                                   .AddJsonFile("appsettings.json")
+                                                   .Build()
+                                                   .Get<Config>();
 
         Assert.IsNotNull(config?.GoogleCredential);
-        string googleCredentialJson = JsonConvert.SerializeObject(config.GoogleCredential);
+        string googleCredentialJson = JsonSerializer.Serialize(config.GoogleCredential);
         Assert.IsFalse(string.IsNullOrWhiteSpace(googleCredentialJson));
 
         Assert.IsFalse(string.IsNullOrWhiteSpace(config.GoogleSheetId));
