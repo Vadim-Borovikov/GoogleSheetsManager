@@ -3,7 +3,7 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-    <Version>28.2.0</Version>
+    <Version>29.0.0</Version>
     <Authors>Vadim Borovikov</Authors>
 	<Company>Care Space</Company>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>

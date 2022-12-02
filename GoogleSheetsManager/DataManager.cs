@@ -19,7 +19,7 @@ public static class DataManager<T>
         ICollection<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
     {
         SheetData<Dictionary<string, object?>> data = await Utils.LoadAsync(provider, range, sheetIndex, formula);
-        return Load(data, additionalConverters, additionalLoaders);
+        return Load(data, provider.TimeManager, additionalConverters, additionalLoaders);
     }
 
     public static Task SaveAsync(SheetsProvider provider, string range, SheetData<T> data,
@@ -30,7 +30,7 @@ public static class DataManager<T>
         return Utils.SaveAsync(provider, range, savedData);
     }
 
-    private static SheetData<T> Load(SheetData<Dictionary<string, object?>> data,
+    private static SheetData<T> Load(SheetData<Dictionary<string, object?>> data, TimeManager timeManager,
         IDictionary<Type, Func<object?, object?>>? additionalConverters = null,
         ICollection<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
     {
@@ -40,22 +40,22 @@ public static class DataManager<T>
         }
 
         List<T> instances = data.Instances
-                                .Select(set => Load(set, additionalConverters, additionalLoaders))
+                                .Select(set => Load(set, timeManager, additionalConverters, additionalLoaders))
                                 .RemoveNulls()
                                 .ToList();
         return new SheetData<T>(instances, data.Titles);
     }
 
-    private static T? Load(IDictionary<string, object?> valueSet,
+    private static T? Load(IDictionary<string, object?> valueSet, TimeManager timeManager,
         IDictionary<Type, Func<object?, object?>>? additionalConverters = null,
         IEnumerable<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
     {
         T? result = new();
         Type type = typeof(T);
         result = Load(valueSet, result, type.GetProperties(), info => info.PropertyType,
-            (info, obj, val) => info.SetValue(obj, val), additionalConverters);
+            (info, obj, val) => info.SetValue(obj, val), additionalConverters, timeManager);
         result = Load(valueSet, result, type.GetFields(), info => info.FieldType,
-            (info, obj, val) => info.SetValue(obj, val), additionalConverters);
+            (info, obj, val) => info.SetValue(obj, val), additionalConverters, timeManager);
         if (additionalLoaders is not null)
         {
             // ReSharper disable once LoopCanBeConvertedToQuery
@@ -69,7 +69,7 @@ public static class DataManager<T>
 
     private static TInstance? Load<TInstance, TInfo>(IDictionary<string, object?> valueSet, TInstance? result,
         IEnumerable<TInfo> members, Func<TInfo, Type> typeProvider, Action<TInfo, TInstance, object?> setter,
-        IDictionary<Type, Func<object?, object?>>? additionalConverters)
+        IDictionary<Type, Func<object?, object?>>? additionalConverters, TimeManager timeManager)
         where TInstance : class
         where TInfo : MemberInfo
     {
@@ -78,8 +78,9 @@ public static class DataManager<T>
             return null;
         }
 
-        Dictionary<Type, Func<object?, object?>> converters =
-            Utils.DefaultConverters.ToDictionary(p => p.Key, p => p.Value);
+        Dictionary<Type, Func<object?, object?>> converters = new(Utils.DefaultConverters);
+        converters[typeof(DateTimeFull)] = converters[typeof(DateTimeFull?)] =
+            o => Utils.GetDateTimeFull(o, timeManager);
         if (additionalConverters is not null)
         {
             foreach (Type type in additionalConverters.Keys)

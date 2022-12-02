@@ -6,6 +6,7 @@ using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
+using GryphonUtilities;
 using JetBrains.Annotations;
 
 namespace GoogleSheetsManager.Providers;
@@ -13,20 +14,27 @@ namespace GoogleSheetsManager.Providers;
 [PublicAPI]
 public sealed class SheetsProvider : IDisposable
 {
-    public SheetsProvider(string credentialJson, string applicationName, string spreadsheetId)
-        : this(CreateInitializer(credentialJson, applicationName), spreadsheetId)
+    public SheetsProvider(IConfigGoogleSheets config, string spreadsheetId)
+        : this(config.GetCredentialJson(), config.ApplicationName, new TimeManager(config.TimeZoneId), spreadsheetId)
     {
     }
 
-    internal SheetsProvider(BaseClientService.Initializer initializer, SheetsService service, string spreadsheetId)
+    public SheetsProvider(string credentialJson, string applicationName, TimeManager timeManager, string spreadsheetId)
+        : this(CreateInitializer(credentialJson, applicationName), timeManager, spreadsheetId)
+    {
+    }
+
+    internal SheetsProvider(BaseClientService.Initializer initializer, SheetsService service, TimeManager timeManager,
+        string spreadsheetId)
     {
         ServiceInitializer = initializer;
         Service = service;
+        TimeManager = timeManager;
         SpreadsheetId = spreadsheetId;
     }
 
-    private SheetsProvider(BaseClientService.Initializer initializer, string spreadsheetId)
-        : this(initializer, new SheetsService(initializer), spreadsheetId)
+    private SheetsProvider(BaseClientService.Initializer initializer, TimeManager timeManager, string spreadsheetId)
+        : this(initializer, new SheetsService(initializer), timeManager, spreadsheetId)
     {
     }
 
@@ -161,6 +169,7 @@ public sealed class SheetsProvider : IDisposable
     internal readonly BaseClientService.Initializer ServiceInitializer;
     internal readonly string SpreadsheetId;
     internal readonly SheetsService Service;
+    internal readonly TimeManager TimeManager;
 
     private static readonly string[] Scopes = { SheetsService.Scope.Drive };
 }

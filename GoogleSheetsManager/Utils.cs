@@ -5,6 +5,7 @@ using GoogleSheetsManager.Providers;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Google.Apis.Sheets.v4.Data;
+using GryphonUtilities;
 
 namespace GoogleSheetsManager;
 
@@ -62,7 +63,8 @@ public static class Utils
     {
         Spreadsheet fromSpreadsheet = await from.LoadSpreadsheetAsync();
         Spreadsheet toSpreadsheet = await from.CreateNewSpreadsheetAsync(fromSpreadsheet.Properties);
-        using (SheetsProvider to = new(from.ServiceInitializer, from.Service, toSpreadsheet.SpreadsheetId))
+        using (SheetsProvider to =
+               new(from.ServiceInitializer, from.Service, from.TimeManager, toSpreadsheet.SpreadsheetId))
         {
             to.PlanToDeleteSheets(toSpreadsheet);
             await to.CopyContentAndPlanToRenameSheetsAsync(from, fromSpreadsheet);
@@ -99,6 +101,20 @@ public static class Utils
             caption = uri.AbsoluteUri;
         }
         return string.Format(HyperlinkFormat, uri.AbsoluteUri, caption);
+    }
+
+    public static DateTimeFull? GetDateTimeFull(object? o, TimeManager timeManager)
+    {
+        switch (o)
+        {
+            case DateTimeFull dtf: return dtf;
+            case DateTimeOffset dto: return timeManager.GetDateTimeFull(dto);
+            default:
+            {
+                DateTime? dt = GetDateTime(o);
+                return dt is null ? null : timeManager.GetDateTimeFull(dt.Value);
+            }
+        }
     }
 
     public static bool? ToBool(this object? o)

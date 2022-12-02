@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 using System.Threading.Tasks;
 using GoogleSheetsManager.Providers;
 using Microsoft.Extensions.Configuration;
@@ -19,13 +18,10 @@ public class DataManagerTests
                                                    .AddJsonFile("appsettings.json")
                                                    .Build()
                                                    .Get<Config>();
-
-        Assert.IsNotNull(config?.GoogleCredential);
-        string googleCredentialJson = JsonSerializer.Serialize(config.GoogleCredential);
-        Assert.IsFalse(string.IsNullOrWhiteSpace(googleCredentialJson));
-
-        Assert.IsFalse(string.IsNullOrWhiteSpace(config.GoogleSheetId));
-        _provider = new SheetsProvider(googleCredentialJson, ApplicationName, config.GoogleSheetId);
+        string? json = (config as IConfigGoogleSheets)?.GetCredentialJson();
+        Assert.IsFalse(string.IsNullOrWhiteSpace(json));
+        Assert.IsFalse(string.IsNullOrWhiteSpace(config?.GoogleSheetId));
+        _provider = new SheetsProvider(config, config.GoogleSheetId);
     }
 
     [TestMethod]
@@ -84,7 +80,6 @@ public class DataManagerTests
     // ReSharper disable once NullableWarningSuppressionIsUsed
     //   _provider initializes in ClassInitialize
     private static SheetsProvider _provider = null!;
-    private const string ApplicationName = "GoogleSheetManagerTest";
     private const string RangeGet = "Test!A1:D";
     private const string RangeUpdate = "Test!A1:D2";
     private static readonly TestInstance TestInstance = new()
