@@ -101,8 +101,7 @@ public sealed class SheetsProvider : IDisposable
     internal Task RenameSheetAsync(int? sheetId, string title)
     {
         Request request = CreateRenameSheetRequest(sheetId, title);
-        List<Request> requests = new() { request };
-        BatchUpdateSpreadsheetRequest body = new() { Requests = requests };
+        BatchUpdateSpreadsheetRequest body = new() { Requests = request.WrapWithList() };
         SpreadsheetsResource.BatchUpdateRequest batchRequest = Service.Spreadsheets.BatchUpdate(body, SpreadsheetId);
         return batchRequest.ExecuteAsync();
     }

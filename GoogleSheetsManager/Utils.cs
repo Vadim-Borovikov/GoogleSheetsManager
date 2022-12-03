@@ -53,7 +53,7 @@ public static class Utils
 
     public static Task SaveAsync(SheetsProvider provider, string range, SheetData<Dictionary<string, object?>> data)
     {
-        List<IList<object>> rawValueSets = new() { data.Titles.Cast<object>().ToList() };
+        List<IList<object>> rawValueSets = new() { data.Titles.ToList<object>() };
         rawValueSets.AddRange(data.Instances
                                   .Select(set => data.Titles.Select(t => set.TryGetValue(t) ?? "").ToList()));
         return provider.UpdateValuesAsync(range, rawValueSets);
