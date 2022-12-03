@@ -14,6 +14,8 @@ namespace GoogleSheetsManager.Providers;
 [PublicAPI]
 public sealed class SheetsProvider : IDisposable
 {
+    public readonly TimeManager TimeManager;
+
     public SheetsProvider(IConfigGoogleSheets config, string spreadsheetId)
         : this(config.GetCredentialJson(), config.ApplicationName, new TimeManager(config.TimeZoneId), spreadsheetId)
     {
@@ -168,7 +170,6 @@ public sealed class SheetsProvider : IDisposable
     internal readonly BaseClientService.Initializer ServiceInitializer;
     internal readonly string SpreadsheetId;
     internal readonly SheetsService Service;
-    internal readonly TimeManager TimeManager;
 
     private static readonly string[] Scopes = { SheetsService.Scope.Drive };
 }
