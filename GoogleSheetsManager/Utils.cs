@@ -28,20 +28,18 @@ public static class Utils
         }
         List<string> titles = GetTitles(rawValueSets[0]).ToList();
 
-        List<Dictionary<string, object?>> valueSets = new();
-        for (int i = 1; i < rawValueSets.Count; ++i)
-        {
-            Dictionary<string, object?> valueSet = new();
-            IList<object> rawValueSet = rawValueSets[i];
-            for (int j = 0; j < titles.Count; ++j)
-            {
-                string title = titles[j];
-                valueSet[title] = j < rawValueSet.Count ? rawValueSet[j] : null;
-            }
-            valueSets.Add(valueSet);
-        }
-
+        List<Dictionary<string, object?>> valueSets = rawValueSets.Select(r => Organize(r, titles)).ToList();
         return new SheetData<Dictionary<string, object?>>(valueSets, titles);
+    }
+
+    private static Dictionary<string, object?> Organize(IList<object> rawValueSet, IList<string> titles)
+    {
+        Dictionary<string, object?> result = new();
+        for (int i = 0; i < titles.Count; ++i)
+        {
+            result[titles[i]] = i < rawValueSet.Count ? rawValueSet[i] : null;
+        }
+        return result;
     }
 
     public static async Task<List<string>> LoadTitlesAsync(SheetsProvider provider, string range)
@@ -94,15 +92,6 @@ public static class Utils
         await provider.RenameSheetAsync(sheet.Properties.SheetId, title);
     }
 
-    public static string GetHyperlink(Uri uri, string? caption = null)
-    {
-        if (string.IsNullOrWhiteSpace(caption))
-        {
-            caption = uri.AbsoluteUri;
-        }
-        return string.Format(HyperlinkFormat, uri.AbsoluteUri, caption);
-    }
-
     public static DateTimeFull? GetDateTimeFull(object? o, TimeManager timeManager)
     {
         switch (o)
@@ -111,49 +100,30 @@ public static class Utils
             case DateTimeOffset dto: return timeManager.GetDateTimeFull(dto);
             default:
             {
-                DateTime? dt = GetDateTime(o);
+                DateTime? dt = o.ToDateTime();
                 return dt is null ? null : timeManager.GetDateTimeFull(dt.Value);
             }
         }
     }
 
-    public static bool? ToBool(this object? o)
+    internal static readonly Dictionary<Type, Func<object?, object?>> DefaultConverters = new()
     {
-        if (o is bool b)
+        { typeof(bool), v => v.ToBool() },
+        { typeof(bool?), v => v.ToBool() },
+        { typeof(int), v => v.ToInt() },
+        { typeof(int?), v => v.ToInt() },
+        { typeof(decimal), v => v.ToDecimal() },
+        { typeof(decimal?), v => v.ToDecimal() },
+        { typeof(string), v => v?.ToString() },
+    };
+
+    public static string GetHyperlink(Uri uri, string? caption = null)
+    {
+        if (string.IsNullOrWhiteSpace(caption))
         {
-            return b;
+            caption = uri.AbsoluteUri;
         }
-        return bool.TryParse(o?.ToString(), out b) ? b : null;
-    }
-
-    public static int? ToInt(this object? o)
-    {
-        if (o is int i)
-        {
-            return i;
-        }
-        return int.TryParse(o?.ToString(), out i) ? i : null;
-    }
-
-    public static decimal? ToDecimal(this object? o)
-    {
-        return o switch
-        {
-            decimal dec => dec,
-            long l      => l,
-            double d    => (decimal) d,
-            _           => null
-        };
-    }
-
-    public static DateTime? GetDateTime(object? o)
-    {
-        return o switch
-        {
-            double d => DateTime.FromOADate(d),
-            long l   => DateTime.FromOADate(l),
-            _        => null
-        };
+        return string.Format(HyperlinkFormat, uri.AbsoluteUri, caption);
     }
 
     private static IEnumerable<string> GetTitles(IEnumerable<object> rawValueSet)
@@ -196,17 +166,6 @@ public static class Utils
         set.TryGetValue(key, out object? o);
         return o;
     }
-
-    internal static readonly Dictionary<Type, Func<object?, object?>> DefaultConverters = new()
-    {
-        { typeof(bool), v => ToBool(v) },
-        { typeof(bool?), v => ToBool(v) },
-        { typeof(int), v => ToInt(v) },
-        { typeof(int?), v => ToInt(v) },
-        { typeof(decimal), v => ToDecimal(v) },
-        { typeof(decimal?), v => ToDecimal(v) },
-        { typeof(string), v => v?.ToString() },
-    };
 
     private const string HyperlinkFormat = "=HYPERLINK(\"{0}\";\"{1}\")";
 }
