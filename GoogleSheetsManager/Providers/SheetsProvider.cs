@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
-using GryphonUtilities;
+using GryphonUtilities.Extensions;
 
 namespace GoogleSheetsManager.Providers;
 
