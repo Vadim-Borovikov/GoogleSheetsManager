@@ -92,7 +92,7 @@ public class Sheet
         }
         List<string> titles = GetTitles(rawValueSets[0]).ToList();
 
-        List<Dictionary<string, object?>> valueSets = rawValueSets.Select(r => Organize(r, titles)).ToList();
+        List<Dictionary<string, object?>> valueSets = rawValueSets.Skip(1).Select(r => Organize(r, titles)).ToList();
         return new SheetData<Dictionary<string, object?>>(valueSets, titles);
     }
 
