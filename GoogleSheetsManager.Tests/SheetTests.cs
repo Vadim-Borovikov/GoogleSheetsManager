@@ -1,14 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using GoogleSheetsManager.Providers;
+using GoogleSheetsManager.Documents;
 using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+// ReSharper disable NullableWarningSuppressionIsUsed
 
 namespace GoogleSheetsManager.Tests;
 
 [TestClass]
-public class DataManagerTests
+public class SheetTests
 {
     [ClassInitialize]
     public static void ClassInitialize(TestContext _)
@@ -21,20 +22,22 @@ public class DataManagerTests
         string? json = (config as IConfigGoogleSheets)?.GetCredentialJson();
         Assert.IsFalse(string.IsNullOrWhiteSpace(json));
         Assert.IsFalse(string.IsNullOrWhiteSpace(config?.GoogleSheetId));
-        _provider = new SheetsProvider(config, config.GoogleSheetId);
+        _manager = new DocumentsManager(config);
+        Document document = _manager.GetOrAdd(config.GoogleSheetId);
+        _sheet = document.GetOrAddSheet(SheeetTitle);
     }
 
     [TestMethod]
     public async Task LoadTitlesAsyncTest()
     {
-        List<string> titles = await Utils.LoadTitlesAsync(_provider, RangeGet);
+        List<string> titles = await _sheet.LoadTitlesAsync(RangeGet);
         Assert.AreEqual(4, titles.Count);
     }
 
     [TestMethod]
     public async Task LoadAsyncTest()
     {
-        SheetData<TestInstance> data = await DataManager<TestInstance>.LoadAsync(_provider, RangeGet);
+        SheetData<TestInstance> data = await _sheet.LoadAsync<TestInstance>(RangeGet);
         Assert.AreEqual(4, data.Titles.Count);
         Assert.AreEqual(3, data.Instances.Count);
 
@@ -58,30 +61,30 @@ public class DataManagerTests
     [TestMethod]
     public async Task SaveAsyncTest()
     {
-        SheetData<TestInstance> data = await DataManager<TestInstance>.LoadAsync(_provider, RangeUpdate);
+        SheetData<TestInstance> data = await _sheet.LoadAsync<TestInstance>(RangeUpdate);
 
         // ReSharper disable once NullableWarningSuppressionIsUsed
         data.Instances[0].String1 = null!;
 
-        await DataManager<TestInstance>.SaveAsync(_provider, RangeGet, data);
-        data = await DataManager<TestInstance>.LoadAsync(_provider, RangeUpdate);
+        await _sheet.SaveAsync(RangeGet, data);
+        data = await _sheet.LoadAsync<TestInstance>(RangeUpdate);
         Assert.AreEqual(0, data.Instances.Count);
 
         data.Instances.Add(TestInstance);
-        await DataManager<TestInstance>.SaveAsync(_provider, RangeGet, data);
-        data = await DataManager<TestInstance>.LoadAsync(_provider, RangeUpdate);
+        await _sheet.SaveAsync(RangeGet, data);
+        data = await _sheet.LoadAsync<TestInstance>(RangeUpdate);
         Assert.AreEqual(1, data.Instances.Count);
         Assert.AreEqual(TestInstance.String1, data.Instances[0].String1);
     }
 
     [ClassCleanup]
-    public static void ClassCleanup() => _provider.Dispose();
+    public static void ClassCleanup() => _manager.Dispose();
 
-    // ReSharper disable once NullableWarningSuppressionIsUsed
-    //   _provider initializes in ClassInitialize
-    private static SheetsProvider _provider = null!;
-    private const string RangeGet = "Test!A1:D";
-    private const string RangeUpdate = "Test!A1:D2";
+    private static DocumentsManager _manager = null!;
+    private static Sheet _sheet = null!;
+    private const string SheeetTitle = "Test";
+    private const string RangeGet = "A1:D";
+    private const string RangeUpdate = "A1:D2";
     private static readonly TestInstance TestInstance = new()
     {
         Bool = false,

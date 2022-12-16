@@ -1,11 +1,13 @@
-﻿namespace GoogleSheetsManager.Range;
+﻿using System;
 
-internal sealed class Range
+namespace GoogleSheetsManager.Range;
+
+internal readonly struct Range
 {
     public readonly Bound IntervalStart;
     public readonly Bound? IntervalEnd;
 
-    private Range(Bound intervalStart, Bound? intervalEnd = null, string? sheet = null)
+    public Range(Bound intervalStart, Bound? intervalEnd = null, string? sheet = null)
     {
         IntervalStart = intervalStart;
         IntervalEnd = intervalEnd;
@@ -19,7 +21,28 @@ internal sealed class Range
         return $"{sheet}{IntervalStart}{intervalEnd}";
     }
 
-    public static Range? Parse(string s)
+    public Range GetFirstRow()
+    {
+        if (IntervalEnd is null)
+        {
+            return this;
+        }
+
+        Bound intervalEnd = new(IntervalEnd.Value.Column, IntervalStart.Row);
+        return new Range(IntervalStart, intervalEnd, _sheet);
+    }
+
+    public static Range Parse(string s)
+    {
+        Range? parsed = TryParse(s);
+        if (parsed is null)
+        {
+            throw new InvalidOperationException($"Can't parse range {s}.");
+        }
+        return parsed.Value;
+    }
+
+    private static Range? TryParse(string s)
     {
         string? sheet = null;
         int sheetSeparatorIndex = s.LastIndexOf('!');
@@ -42,7 +65,7 @@ internal sealed class Range
             intervalStart = Bound.Parse(s);
         }
 
-        return intervalStart is null ? null : new Range(intervalStart, intervalEnd, sheet);
+        return intervalStart is null ? null : new Range(intervalStart.Value, intervalEnd, sheet);
     }
 
     private readonly string? _sheet;

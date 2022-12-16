@@ -2,17 +2,18 @@
 
 namespace GoogleSheetsManager.Range;
 
-internal sealed class Bound
+internal readonly struct Bound
 {
-    public ushort? Row;
+    internal readonly string? Column;
+    internal readonly ushort? Row;
 
-    private Bound(string? column = null, ushort? row = null)
+    internal Bound(string? column = null, ushort? row = null)
     {
-        _column = column;
+        Column = column;
         Row = row;
     }
 
-    public override string ToString() => $"{_column}{Row}";
+    public override string ToString() => $"{Column}{Row}";
 
     public static Bound? Parse(string s)
     {
@@ -58,6 +59,4 @@ internal sealed class Bound
 
         return new Bound(column, row);
     }
-
-    private readonly string? _column;
 }
