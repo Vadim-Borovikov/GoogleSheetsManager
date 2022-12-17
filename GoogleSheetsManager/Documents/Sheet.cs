@@ -17,6 +17,15 @@ public class Sheet
 {
     public readonly string Title;
 
+    public int? Id => _sheet?.Properties.SheetId;
+
+    internal Sheet(Google.Apis.Sheets.v4.Data.Sheet sheet, SheetsProvider provider, Document document,
+        IDictionary<Type, Func<object?, object?>> converters)
+    : this(sheet.Properties.Title, provider, document, converters)
+    {
+        _sheet = sheet;
+    }
+
     internal Sheet(string title, SheetsProvider provider, Document document,
         IDictionary<Type, Func<object?, object?>> converters)
     {
@@ -63,6 +72,8 @@ public class Sheet
         }
         await _provider.RenameSheetAsync(_sheet.Properties.SheetId, newName);
     }
+
+    internal void SetSheet(Google.Apis.Sheets.v4.Data.Sheet sheet) => _sheet = sheet;
 
     private string AddTitleTo(string range)
     {

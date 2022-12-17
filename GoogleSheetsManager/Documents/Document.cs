@@ -4,6 +4,7 @@ using GoogleSheetsManager.Providers;
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace GoogleSheetsManager.Documents;
@@ -17,7 +18,7 @@ public class Document
     {
         Provider = new SheetsProvider(service, id);
         _converters = converters;
-        _sheets = new Dictionary<string, Sheet>();
+        _sheets = new List<Sheet>();
     }
 
     internal Document(SheetsService service, Spreadsheet spreadsheet,
@@ -29,37 +30,68 @@ public class Document
 
     public Sheet GetOrAddSheet(string title, IDictionary<Type, Func<object?, object?>>? additionalConverters = null)
     {
-        if (!_sheets.ContainsKey(title))
+        Sheet? sheet = _sheets.FirstOrDefault(s => s.Title == title);
+        if (sheet is null)
         {
-            _sheets[title] = AddSheet(title, additionalConverters);
+            IDictionary<Type, Func<object?, object?>> сonverters = GetConvertersWith(additionalConverters);
+            sheet = new Sheet(title, Provider, this, сonverters);
+            _sheets.Add(sheet);
+        }
+        return sheet;
+    }
+
+    public async Task<Sheet?> GetOrAddSheetAsync(int id,
+        IDictionary<Type, Func<object?, object?>>? additionalConverters = null)
+    {
+        Sheet? sheet = _sheets.FirstOrDefault(s => s.Id == id);
+        if (sheet is null)
+        {
+            Spreadsheet spreadsheet = await GetSpreadsheetAsync();
+            Google.Apis.Sheets.v4.Data.Sheet? googleSheet =
+                spreadsheet.Sheets.SingleOrDefault(s => s.Properties.SheetId == id);
+            if (googleSheet is null)
+            {
+                return null;
+            }
+
+            sheet = _sheets.FirstOrDefault(s => s.Title == googleSheet.Properties.Title);
+            if (sheet is null)
+            {
+                IDictionary<Type, Func<object?, object?>> сonverters = GetConvertersWith(additionalConverters);
+                sheet = new Sheet(googleSheet, Provider, this, сonverters);
+                _sheets.Add(sheet);
+            }
+            else
+            {
+                sheet.SetSheet(googleSheet);
+            }
         }
 
-        return _sheets[title];
+        return sheet;
     }
 
     internal async Task<Spreadsheet> GetSpreadsheetAsync() => _spreadsheet ??= await Provider.LoadSpreadsheetAsync();
 
-    private Sheet AddSheet(string title, IDictionary<Type, Func<object?, object?>>? additionalConverters)
+    private IDictionary<Type, Func<object?, object?>> GetConvertersWith(
+        IDictionary<Type, Func<object?, object?>>? additional)
     {
-        IDictionary<Type, Func<object?, object?>> converters;
-        if (additionalConverters is null)
+        if (additional is null)
         {
-            converters = _converters;
-        }
-        else
-        {
-            converters = new Dictionary<Type, Func<object?, object?>>(_converters);
-            foreach (Type type in additionalConverters.Keys)
-            {
-                converters[type] = additionalConverters[type];
-            }
+            return _converters;
         }
 
-        return new Sheet(title, Provider, this, converters);
+        IDictionary<Type, Func<object?, object?>> converters =
+            new Dictionary<Type, Func<object?, object?>>(_converters);
+        foreach (Type type in additional.Keys)
+        {
+            converters[type] = additional[type];
+        }
+
+        return converters;
     }
 
     private Spreadsheet? _spreadsheet;
 
-    private readonly IDictionary<string, Sheet> _sheets;
+    private readonly IList<Sheet> _sheets;
     private readonly IDictionary<Type, Func<object?, object?>> _converters;
 }
