@@ -15,7 +15,7 @@ namespace GoogleSheetsManager.Documents;
 [PublicAPI]
 public class Sheet
 {
-    public readonly string Title;
+    public string Title { get; private set; }
 
     public int? Id => _sheet?.Properties.SheetId;
 
@@ -71,6 +71,7 @@ public class Sheet
             }
         }
         await _provider.RenameSheetAsync(_sheet.Properties.SheetId, newName);
+        Title = newName;
     }
 
     internal void SetSheet(Google.Apis.Sheets.v4.Data.Sheet sheet) => _sheet = sheet;
