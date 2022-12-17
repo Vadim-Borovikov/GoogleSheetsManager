@@ -17,7 +17,7 @@ public class Sheet
 {
     public string Title { get; private set; }
 
-    public int? Id => _sheet?.Properties.SheetId;
+    public int? Index => _sheet?.Properties.Index;
 
     internal Sheet(Google.Apis.Sheets.v4.Data.Sheet sheet, SheetsProvider provider, Document document,
         IDictionary<Type, Func<object?, object?>> converters)

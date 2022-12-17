@@ -40,15 +40,15 @@ public class Document
         return sheet;
     }
 
-    public async Task<Sheet?> GetOrAddSheetAsync(int id,
+    public async Task<Sheet?> GetOrAddSheetAsync(int index,
         IDictionary<Type, Func<object?, object?>>? additionalConverters = null)
     {
-        Sheet? sheet = _sheets.FirstOrDefault(s => s.Id == id);
+        Sheet? sheet = _sheets.FirstOrDefault(s => s.Index == index);
         if (sheet is null)
         {
             Spreadsheet spreadsheet = await GetSpreadsheetAsync();
             Google.Apis.Sheets.v4.Data.Sheet? googleSheet =
-                spreadsheet.Sheets.SingleOrDefault(s => s.Properties.SheetId == id);
+                spreadsheet.Sheets.SingleOrDefault(s => s.Properties.Index == index);
             if (googleSheet is null)
             {
                 return null;
