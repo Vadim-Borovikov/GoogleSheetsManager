@@ -12,10 +12,13 @@ namespace GoogleSheetsManager.Documents;
 [PublicAPI]
 public class Document
 {
+    public readonly string Id;
+
     internal readonly SheetsProvider Provider;
 
     public Document(SheetsService service, string id, IDictionary<Type, Func<object?, object?>> converters)
     {
+        Id = id;
         Provider = new SheetsProvider(service, id);
         _converters = converters;
         _sheets = new List<Sheet>();
