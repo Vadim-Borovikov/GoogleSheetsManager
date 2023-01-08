@@ -56,6 +56,10 @@ public class SheetTests
         Assert.AreEqual(TestInstance.String2, data.Instances[0].String2);
         Assert.AreEqual(TestInstance.String2, data.Instances[1].String2);
         Assert.IsNull(data.Instances[2].String2);
+
+        data = await _sheet.LoadAsync<TestInstance>(RangeGetEmpty);
+        Assert.AreEqual(4, data.Titles.Count);
+        Assert.AreEqual(0, data.Instances.Count);
     }
 
     [TestMethod]
@@ -84,6 +88,7 @@ public class SheetTests
     private static Sheet _sheet = null!;
     private const string SheeetTitle = "Test";
     private const string RangeGet = "A1:D";
+    private const string RangeGetEmpty = "A1:D1";
     private const string RangeUpdate = "A1:D2";
     private static readonly TestInstance TestInstance = new()
     {

@@ -127,11 +127,6 @@ public class Sheet
         ICollection<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
         where T : class, new()
     {
-        if (data.Instances.Count < 1)
-        {
-            return new SheetData<T>();
-        }
-
         List<T> instances = data.Instances
                                 .Select(set => Load(set, additionalLoaders))
                                 .RemoveNulls()
