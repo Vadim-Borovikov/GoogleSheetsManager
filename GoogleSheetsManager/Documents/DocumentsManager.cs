@@ -59,7 +59,7 @@ public class DocumentsManager : IDisposable
 
     public async Task<Document> CopyAsync(string sourceId, string newName, string folderId)
     {
-        Document from = _documents[sourceId];
+        Document from = GetOrAdd(sourceId);
         Spreadsheet fromSpreadsheet = await from.GetSpreadsheetAsync();
         Spreadsheet toSpreadsheet = await from.Provider.CreateNewSpreadsheetAsync(fromSpreadsheet.Properties);
         Document to = GetOrAdd(toSpreadsheet);
