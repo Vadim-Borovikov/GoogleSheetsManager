@@ -30,9 +30,9 @@ public static class ObjectExtensions
         return o switch
         {
             decimal dec => dec,
-            long l => l,
-            double d => (decimal)d,
-            _ => null
+            long l      => l,
+            double d    => (decimal) d,
+            _           => null
         };
     }
 
@@ -41,22 +41,39 @@ public static class ObjectExtensions
         return o switch
         {
             double d => DateTime.FromOADate(d),
-            long l => DateTime.FromOADate(l),
-            _ => null
+            long l   => DateTime.FromOADate(l),
+            _        => null
         };
     }
 
     public static DateTimeFull? ToDateTimeFull(this object? o, TimeManager timeManager)
     {
-        switch (o)
+        if (o is DateTimeFull dtf || DateTimeFull.TryParse(o?.ToString(), out dtf))
         {
-            case DateTimeFull dtf: return dtf;
-            case DateTimeOffset dto: return timeManager.GetDateTimeFull(dto);
-            default:
-            {
-                DateTime? dt = o.ToDateTime();
-                return dt is null ? null : timeManager.GetDateTimeFull(dt.Value);
-            }
+            return dtf;
         }
+
+        DateTimeOffset? dto = o?.ToDateTimeOffset();
+        if (dto.HasValue)
+        {
+            return timeManager.GetDateTimeFull(dto.Value);
+        }
+
+        DateTime? dt = o.ToDateTime();
+        if (dt.HasValue)
+        {
+            return timeManager.GetDateTimeFull(dt.Value);
+        }
+
+        return null;
+    }
+
+    private static DateTimeOffset? ToDateTimeOffset(this object? o)
+    {
+        if (o is DateTimeOffset dto)
+        {
+            return dto;
+        }
+        return DateTimeOffset.TryParse(o?.ToString(), out dto) ? dto : null;
     }
 }

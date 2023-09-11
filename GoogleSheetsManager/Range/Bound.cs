@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 namespace GoogleSheetsManager.Range;
 
@@ -15,12 +16,24 @@ internal readonly struct Bound
 
     public override string ToString() => $"{Column}{Row}";
 
-    public static Bound? Parse(string s)
+    // ReSharper disable once UnusedMember.Global
+    public static Bound Parse(string value)
     {
-        int? rowIndex = null;
-        for (int i = 0; i < s.Length; ++i)
+        if (!TryParse(value, out Bound result))
         {
-            if (char.IsDigit(s[i]))
+            throw new FormatException($"String \"{value}\" was not recognized as a valid {nameof(Bound)}.");
+        }
+        return result;
+    }
+
+    public static bool TryParse(string value, out Bound result)
+    {
+        result = default;
+
+        int? rowIndex = null;
+        for (int i = 0; i < value.Length; ++i)
+        {
+            if (char.IsDigit(value[i]))
             {
                 rowIndex = i;
                 break;
@@ -32,31 +45,32 @@ internal readonly struct Bound
 
         if (rowIndex.HasValue)
         {
-            column = s[..rowIndex.Value];
-            rowString = s[rowIndex.Value..];
+            column = value[..rowIndex.Value];
+            rowString = value[rowIndex.Value..];
         }
         else
         {
-            column = s;
+            column = value;
         }
 
         ushort? row = null;
         if (rowString is not null)
         {
-            bool success = ushort.TryParse(rowString, out ushort result);
+            bool success = ushort.TryParse(rowString, out ushort u);
             if (!success)
             {
-                return null;
+                return false;
             }
 
-            row = result;
+            row = u;
         }
 
         if (column.Any(c => !char.IsLetter(c)))
         {
-            return null;
+            return false;
         }
 
-        return new Bound(column, row);
+        result = new Bound(column, row);
+        return true;
     }
 }

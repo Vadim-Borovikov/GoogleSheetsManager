@@ -6,7 +6,6 @@ using GoogleSheetsManager.Providers;
 using System.Linq;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
-using GoogleSheetsManager.Extensions;
 using Google.Apis.Sheets.v4.Data;
 using GryphonUtilities.Extensions;
 
@@ -188,7 +187,7 @@ public class Sheet
             }
 
             Type type = typeProvider(info);
-            Func<object?, object?>? converter = _converters.GetValueOrDefault(type);
+            Func<object?, object?>? converter = _converters.AsReadOnly().GetValueOrDefault(type);
             object? value = valueSet.TryGetValue(title, out object? rawValue) ? converter?.Invoke(rawValue) : null;
             if (required && value is null or "")
             {
@@ -205,7 +204,7 @@ public class Sheet
         List<IList<object>> rawValueSets = new() { data.Titles.ToList<object>() };
         rawValueSets.AddRange(data.Instances
                                   .Select(set => data.Titles
-                                                     .Select(t => DictionaryExtensions.GetValueOrDefault(set, t) ?? "")
+                                                     .Select(t => set.GetValueOrDefault(t) ?? "")
                                                      .ToList()));
         return _provider.UpdateValuesAsync(range, rawValueSets);
     }
