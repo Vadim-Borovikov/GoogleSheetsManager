@@ -25,6 +25,15 @@ public static class ObjectExtensions
         return int.TryParse(o?.ToString(), out i) ? i : null;
     }
 
+    public static long? ToLong(this object? o)
+    {
+        if (o is long l)
+        {
+            return l;
+        }
+        return long.TryParse(o?.ToString(), out l) ? l : null;
+    }
+
     public static decimal? ToDecimal(this object? o)
     {
         return o switch
@@ -36,14 +45,37 @@ public static class ObjectExtensions
         };
     }
 
-    public static DateTime? ToDateTime(this object? o)
+    public static DateOnly? ToDateOnly(this object? o, TimeManager timeManager)
     {
-        return o switch
+        if (o is DateOnly d)
         {
-            double d => DateTime.FromOADate(d),
-            long l   => DateTime.FromOADate(l),
-            _        => null
-        };
+            return d;
+        }
+
+        DateTimeFull? dtf = o.ToDateTimeFull(timeManager);
+        return dtf?.DateOnly;
+    }
+
+    public static TimeOnly? ToTimeOnly(this object? o, TimeManager timeManager)
+    {
+        if (o is TimeOnly t)
+        {
+            return t;
+        }
+
+        DateTimeFull? dtf = o.ToDateTimeFull(timeManager);
+        return dtf?.TimeOnly;
+    }
+
+    public static TimeSpan? ToTimeSpan(this object? o, TimeManager timeManager)
+    {
+        if (o is TimeSpan t)
+        {
+            return t;
+        }
+
+        DateTimeFull? dtf = o.ToDateTimeFull(timeManager);
+        return dtf?.DateTimeOffset.TimeOfDay;
     }
 
     public static DateTimeFull? ToDateTimeFull(this object? o, TimeManager timeManager)
@@ -66,6 +98,16 @@ public static class ObjectExtensions
         }
 
         return null;
+    }
+
+    private static DateTime? ToDateTime(this object? o)
+    {
+        return o switch
+        {
+            double d => DateTime.FromOADate(d),
+            long l   => DateTime.FromOADate(l),
+            _        => null
+        };
     }
 
     private static DateTimeOffset? ToDateTimeOffset(this object? o)

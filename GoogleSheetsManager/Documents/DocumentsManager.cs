@@ -30,6 +30,9 @@ public class DocumentsManager : IDisposable
 
         TimeManager timeManager = new(config.TimeZoneId);
         _converters[typeof(DateTimeFull)] = _converters[typeof(DateTimeFull?)] = o => o?.ToDateTimeFull(timeManager);
+        _converters[typeof(DateOnly)] = _converters[typeof(DateOnly?)] = o => o?.ToDateOnly(timeManager);
+        _converters[typeof(TimeOnly)] = _converters[typeof(TimeOnly?)] = o => o?.ToTimeOnly(timeManager);
+        _converters[typeof(TimeSpan)] = _converters[typeof(TimeSpan?)] = o => o?.ToTimeSpan(timeManager);
     }
 
     public void Dispose()
@@ -102,6 +105,8 @@ public class DocumentsManager : IDisposable
         { typeof(bool?), v => v.ToBool() },
         { typeof(int), v => v.ToInt() },
         { typeof(int?), v => v.ToInt() },
+        { typeof(long), v => v.ToLong() },
+        { typeof(long?), v => v.ToLong() },
         { typeof(decimal), v => v.ToDecimal() },
         { typeof(decimal?), v => v.ToDecimal() },
         { typeof(string), v => v?.ToString() },
