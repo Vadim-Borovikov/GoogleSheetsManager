@@ -13,7 +13,7 @@ using JetBrains.Annotations;
 namespace GoogleSheetsManager.Documents;
 
 [PublicAPI]
-public class DocumentsManager : IDisposable
+public sealed class DocumentsManager : IDisposable
 {
     public DocumentsManager(IConfigGoogleSheets config)
     {
