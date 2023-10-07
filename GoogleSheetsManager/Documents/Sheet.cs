@@ -35,11 +35,12 @@ public class Sheet
     }
 
     public async Task<SheetData<T>> LoadAsync<T>(string range, bool formula = false,
+        IDictionary<string, string>? titleAliases = null,
         ICollection<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
         where T : class, new()
     {
         SheetData<Dictionary<string, object?>> data = await LoadAsync(AddTitleTo(range), formula);
-        return Load(data, additionalLoaders);
+        return Load(data, titleAliases, additionalLoaders);
     }
 
     public async Task<List<string>> LoadTitlesAsync(string range)
@@ -48,10 +49,11 @@ public class Sheet
         return GetTitles(rawValueSets[0]).ToList();
     }
 
-    public Task SaveAsync<T>(string range, SheetData<T> data,
+    public Task SaveAsync<T>(string range, SheetData<T> data, IDictionary<string, string>? titleAliases = null,
         IEnumerable<Action<T, IDictionary<string, object?>>>? additionalSavers = null)
     {
-        List<Dictionary<string, object?>> instances = data.Instances.Select(i => Save(i, additionalSavers)).ToList();
+        List<Dictionary<string, object?>> instances =
+            data.Instances.Select(i => Save(i, titleAliases, additionalSavers)).ToList();
         SheetData<Dictionary<string, object?>> savedData = new(instances, data.Titles);
         return SaveAsync(AddTitleTo(range), savedData);
     }
@@ -123,25 +125,26 @@ public class Sheet
     }
 
     private SheetData<T> Load<T>(SheetData<Dictionary<string, object?>> data,
+        IDictionary<string, string>? titleAliases = null,
         ICollection<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
         where T : class, new()
     {
         List<T> instances = data.Instances
-                                .Select(set => Load(set, additionalLoaders))
+                                .Select(set => Load(set, titleAliases, additionalLoaders))
                                 .RemoveNulls()
                                 .ToList();
         return new SheetData<T>(instances, data.Titles);
     }
 
-    private T? Load<T>(IDictionary<string, object?> valueSet,
+    private T? Load<T>(IDictionary<string, object?> valueSet, IDictionary<string, string>? titleAliases = null,
         IEnumerable<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
         where T : class, new()
     {
         T? result = new();
         Type type = typeof(T);
-        result = Load(valueSet, result, type.GetProperties(), info => info.PropertyType,
+        result = Load(valueSet, titleAliases, result, type.GetProperties(), info => info.PropertyType,
             (info, obj, val) => info.SetValue(obj, val));
-        result = Load(valueSet, result, type.GetFields(), info => info.FieldType,
+        result = Load(valueSet, titleAliases, result, type.GetFields(), info => info.FieldType,
             (info, obj, val) => info.SetValue(obj, val));
         if (additionalLoaders is not null)
         {
@@ -154,7 +157,8 @@ public class Sheet
         return result;
     }
 
-    private TInstance? Load<TInstance, TInfo>(IDictionary<string, object?> valueSet, TInstance? result,
+    private TInstance? Load<TInstance, TInfo>(IDictionary<string, object?> valueSet,
+        IDictionary<string, string>? titleAliases, TInstance? result,
         IEnumerable<TInfo> members, Func<TInfo, Type> typeProvider, Action<TInfo, TInstance, object?> setter)
         where TInstance : class
         where TInfo : MemberInfo
@@ -176,7 +180,7 @@ public class Sheet
                         required = true;
                         break;
                     case SheetFieldAttribute sheetField:
-                        title = sheetField.Title ?? info.Name;
+                        title = GetTitle(sheetField, titleAliases, info);
                         break;
                 }
             }
@@ -209,13 +213,13 @@ public class Sheet
         return _provider.UpdateValuesAsync(range, rawValueSets);
     }
 
-    private static Dictionary<string, object?> Save<T>(T instance,
+    private static Dictionary<string, object?> Save<T>(T instance, IDictionary<string, string>? titleAliases = null,
         IEnumerable<Action<T, IDictionary<string, object?>>>? additionalSavers = null)
     {
         Dictionary<string, object?> result = new();
         Type type = typeof(T);
-        Save(instance, result, type.GetProperties(), (info, obj) => info.GetValue(obj));
-        Save(instance, result, type.GetFields(), (info, obj) => info.GetValue(obj));
+        Save(instance, result, type.GetProperties(), (info, obj) => info.GetValue(obj), titleAliases);
+        Save(instance, result, type.GetFields(), (info, obj) => info.GetValue(obj), titleAliases);
         if (additionalSavers is not null)
         {
             foreach (Action<T, IDictionary<string, object?>> saver in additionalSavers)
@@ -227,7 +231,8 @@ public class Sheet
     }
 
     private static void Save<TInstance, TInfo>(TInstance instance, Dictionary<string, object?> result,
-        IEnumerable<TInfo> members, Func<TInfo, TInstance, object?> getter)
+        IEnumerable<TInfo> members, Func<TInfo, TInstance, object?> getter,
+        IDictionary<string, string>? titleAliases = null)
         where TInfo : MemberInfo
     {
         foreach (TInfo info in members)
@@ -239,9 +244,25 @@ public class Sheet
             }
 
             object? value = getter(info, instance);
-            string title = sheetField.Title ?? info.Name;
+            string title = GetTitle(sheetField, titleAliases, info);
             result[title] = sheetField.Format is null ? value : string.Format(sheetField.Format, value);
         }
+    }
+
+    private static string GetTitle(SheetFieldAttribute sheetField, IDictionary<string, string>? titleAliases,
+        MemberInfo info)
+    {
+        if (sheetField.Title is not null)
+        {
+            return sheetField.Title;
+        }
+
+        if (titleAliases is not null && titleAliases.ContainsKey(info.Name))
+        {
+            return titleAliases[info.Name];
+        }
+
+        return info.Name;
     }
 
     private readonly SheetsProvider _provider;
