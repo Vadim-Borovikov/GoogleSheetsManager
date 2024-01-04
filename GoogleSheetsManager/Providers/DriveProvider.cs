@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Google.Apis.Drive.v3;
 using Google.Apis.Drive.v3.Data;
@@ -25,13 +26,13 @@ internal sealed class DriveProvider : IDisposable
 
     public async Task<IList<string>> GetParentsAsync()
     {
-        File file = await GetFileAsync("parents");
+        Google.Apis.Drive.v3.Data.File file = await GetFileAsync("parents");
         return file.Parents;
     }
 
     public async Task MoveAndRenameAsync(string name, string folderId, string oldParents)
     {
-        File body = new() { Name = name };
+        Google.Apis.Drive.v3.Data.File body = new() { Name = name };
 
         FilesResource.UpdateRequest request = _service.Files.Update(body, _fileId);
         request.AddParents = folderId;
@@ -54,7 +55,13 @@ internal sealed class DriveProvider : IDisposable
         return request.ExecuteAsync();
     }
 
-    private Task<File> GetFileAsync(string fields)
+    public Task DownloadAsync(string mimeType, Stream stream)
+    {
+        FilesResource.ExportRequest request = _service.Files.Export(_fileId, mimeType);
+        return request.DownloadAsync(stream);
+    }
+
+    private Task<Google.Apis.Drive.v3.Data.File> GetFileAsync(string fields)
     {
         FilesResource.GetRequest request = _service.Files.Get(_fileId);
         request.Fields = fields;

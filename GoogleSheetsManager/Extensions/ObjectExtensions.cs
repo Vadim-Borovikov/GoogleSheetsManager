@@ -1,5 +1,5 @@
 ﻿using System;
-using GryphonUtilities;
+using GryphonUtilities.Time;
 using JetBrains.Annotations;
 
 namespace GoogleSheetsManager.Extensions;
@@ -45,40 +45,40 @@ public static class ObjectExtensions
         };
     }
 
-    public static DateOnly? ToDateOnly(this object? o, TimeManager timeManager)
+    public static DateOnly? ToDateOnly(this object? o, Clock clock)
     {
         if (o is DateOnly d)
         {
             return d;
         }
 
-        DateTimeFull? dtf = o.ToDateTimeFull(timeManager);
+        DateTimeFull? dtf = o.ToDateTimeFull(clock);
         return dtf?.DateOnly;
     }
 
-    public static TimeOnly? ToTimeOnly(this object? o, TimeManager timeManager)
+    public static TimeOnly? ToTimeOnly(this object? o, Clock clock)
     {
         if (o is TimeOnly t)
         {
             return t;
         }
 
-        DateTimeFull? dtf = o.ToDateTimeFull(timeManager);
+        DateTimeFull? dtf = o.ToDateTimeFull(clock);
         return dtf?.TimeOnly;
     }
 
-    public static TimeSpan? ToTimeSpan(this object? o, TimeManager timeManager)
+    public static TimeSpan? ToTimeSpan(this object? o, Clock clock)
     {
         if (o is TimeSpan t)
         {
             return t;
         }
 
-        DateTimeFull? dtf = o.ToDateTimeFull(timeManager);
+        DateTimeFull? dtf = o.ToDateTimeFull(clock);
         return dtf?.DateTimeOffset.TimeOfDay;
     }
 
-    public static DateTimeFull? ToDateTimeFull(this object? o, TimeManager timeManager)
+    public static DateTimeFull? ToDateTimeFull(this object? o, Clock clock)
     {
         if (o is DateTimeFull dtf || DateTimeFull.TryParse(o?.ToString(), out dtf))
         {
@@ -88,13 +88,13 @@ public static class ObjectExtensions
         DateTimeOffset? dto = o?.ToDateTimeOffset();
         if (dto.HasValue)
         {
-            return timeManager.GetDateTimeFull(dto.Value);
+            return clock.GetDateTimeFull(dto.Value);
         }
 
         DateTime? dt = o.ToDateTime();
         if (dt.HasValue)
         {
-            return timeManager.GetDateTimeFull(dt.Value);
+            return clock.GetDateTimeFull(dt.Value);
         }
 
         return null;

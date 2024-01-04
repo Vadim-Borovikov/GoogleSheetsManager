@@ -33,7 +33,7 @@ public class Document
 
     public Sheet GetOrAddSheet(string title, IDictionary<Type, Func<object?, object?>>? additionalConverters = null)
     {
-        Sheet? sheet = _sheets.FirstOrDefault(s => s.Title == title);
+        Sheet? sheet = _sheets.FirstOrDefault(s => s.Name == title);
         if (sheet is null)
         {
             IDictionary<Type, Func<object?, object?>> сonverters = GetConvertersWith(additionalConverters);
@@ -57,7 +57,7 @@ public class Document
                 return null;
             }
 
-            sheet = _sheets.FirstOrDefault(s => s.Title == googleSheet.Properties.Title);
+            sheet = _sheets.FirstOrDefault(s => s.Name == googleSheet.Properties.Title);
             if (sheet is null)
             {
                 IDictionary<Type, Func<object?, object?>> сonverters = GetConvertersWith(additionalConverters);

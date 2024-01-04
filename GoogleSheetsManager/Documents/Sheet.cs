@@ -14,7 +14,9 @@ namespace GoogleSheetsManager.Documents;
 [PublicAPI]
 public class Sheet
 {
-    public string Title { get; private set; }
+    public string Name { get; private set; }
+
+    public List<string> Titles { get; private set; } = new();
 
     public int? Index => _sheet?.Properties.Index;
 
@@ -25,37 +27,44 @@ public class Sheet
         _sheet = sheet;
     }
 
-    internal Sheet(string title, SheetsProvider provider, Document document,
+    internal Sheet(string name, SheetsProvider provider, Document document,
         IDictionary<Type, Func<object?, object?>> converters)
     {
-        Title = title;
+        Name = name;
         _provider = provider;
         _document = document;
         _converters = converters;
     }
 
-    public async Task<SheetData<T>> LoadAsync<T>(string range, bool formula = false,
+    public async Task<List<T>> LoadAsync<T>(string range, bool formula = false,
         IDictionary<string, string>? titleAliases = null,
         ICollection<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
         where T : class, new()
     {
-        SheetData<Dictionary<string, object?>> data = await LoadAsync(AddTitleTo(range), formula);
-        return Load(data, titleAliases, additionalLoaders);
+        List<Dictionary<string, object?>> maps = await LoadAsync(AddTitleTo(range), formula);
+        return maps.Select(m => Load(m, titleAliases, additionalLoaders))
+                   .RemoveNulls()
+                   .ToList();
     }
 
-    public async Task<List<string>> LoadTitlesAsync(string range)
+    public async Task LoadTitlesAsync(string range)
     {
-        IList<IList<object>> rawValueSets = await _provider.GetValueListAsync(AddTitleToFirstRaw(range), false);
-        return GetTitles(rawValueSets[0]).ToList();
+        IList<IList<object>> rows = await _provider.GetValueListAsync(AddTitleToFirstRaw(range), false);
+        Titles = GetTitles(rows[0]);
     }
 
-    public Task SaveAsync<T>(string range, SheetData<T> data, IDictionary<string, string>? titleAliases = null,
+    public Task SaveAsync<T>(string range, List<T> instances, IDictionary<string, string>? titleAliases = null,
         IEnumerable<Action<T, IDictionary<string, object?>>>? additionalSavers = null)
     {
-        List<Dictionary<string, object?>> instances =
-            data.Instances.Select(i => Save(i, titleAliases, additionalSavers)).ToList();
-        SheetData<Dictionary<string, object?>> savedData = new(instances, data.Titles);
-        return SaveAsync(AddTitleTo(range), savedData);
+        List<Dictionary<string, object?>> maps =
+            instances.Select(i => Save(i, titleAliases, additionalSavers)).ToList();
+        return SaveAsync(AddTitleTo(range), maps);
+    }
+
+    public Task SaveRawAsync(string range, IList<IList<object>> rows)
+    {
+        range = AddTitleTo(range);
+        return _provider.UpdateValuesAsync(range, rows);
     }
 
     public Task ClearAsync(string range) => _provider.ClearValuesAsync(AddTitleTo(range));
@@ -65,105 +74,89 @@ public class Sheet
         if (_sheet is null)
         {
             Spreadsheet spreadsheet = await _document.GetSpreadsheetAsync();
-            _sheet = spreadsheet.Sheets.SingleOrDefault(s => s.Properties.Title == Title);
+            _sheet = spreadsheet.Sheets.SingleOrDefault(s => s.Properties.Title == Name);
             if (_sheet is null)
             {
                 throw new NullReferenceException(nameof(_sheet));
             }
         }
         await _provider.RenameSheetAsync(_sheet.Properties.SheetId, newName);
-        Title = newName;
+        Name = newName;
     }
 
     internal void SetSheet(Google.Apis.Sheets.v4.Data.Sheet sheet) => _sheet = sheet;
 
     private string AddTitleTo(string range)
     {
-        Range.Range fullRange = ParseAndAddTitle(range);
+        Range.Range fullRange = ParseAndAddName(range);
         return fullRange.ToString();
     }
 
     private string AddTitleToFirstRaw(string range)
     {
-        Range.Range fullRange = ParseAndAddTitle(range);
+        Range.Range fullRange = ParseAndAddName(range);
         return fullRange.GetFirstRow().ToString();
     }
 
-    private Range.Range ParseAndAddTitle(string range)
+    private Range.Range ParseAndAddName(string range)
     {
         Range.Range parsed = Range.Range.Parse(range);
-        Range.Range fullRange = new(parsed.IntervalStart, parsed.IntervalEnd, Title);
+        Range.Range fullRange = new(parsed.IntervalStart, parsed.IntervalEnd, Name);
         return fullRange;
     }
 
-    private async Task<SheetData<Dictionary<string, object?>>> LoadAsync(string range, bool formula = false)
+    private async Task<List<Dictionary<string, object?>>> LoadAsync(string range, bool formula = false)
     {
-        IList<IList<object>> rawValueSets = await _provider.GetValueListAsync(range, formula);
-        if (rawValueSets.Count < 1)
+        IList<IList<object>> rows = await _provider.GetValueListAsync(range, formula);
+        if (rows.Count < 1)
         {
-            return new SheetData<Dictionary<string, object?>>();
+            return new List<Dictionary<string, object?>>();
         }
-        List<string> titles = GetTitles(rawValueSets[0]).ToList();
 
-        List<Dictionary<string, object?>> valueSets = rawValueSets.Skip(1).Select(r => Organize(r, titles)).ToList();
-        return new SheetData<Dictionary<string, object?>>(valueSets, titles);
+        Titles = GetTitles(rows[0]);
+        return rows.Skip(1).Select(Organize).ToList();
     }
 
-    private static IEnumerable<string> GetTitles(IEnumerable<object> rawValueSet)
-    {
-        return rawValueSet.Select(o => o.ToString() ?? "");
-    }
+    private static List<string> GetTitles(IEnumerable<object> row) => row.Select(o => o.ToString() ?? "").ToList();
 
-    private static Dictionary<string, object?> Organize(IList<object> rawValueSet, IList<string> titles)
+    private Dictionary<string, object?> Organize(IList<object> row)
     {
-        Dictionary<string, object?> result = new();
-        for (int i = 0; i < titles.Count; ++i)
+        Dictionary<string, object?> map = new();
+        for (int i = 0; i < Titles.Count; ++i)
         {
-            result[titles[i]] = i < rawValueSet.Count ? rawValueSet[i] : null;
+            map[Titles[i]] = i < row.Count ? row[i] : null;
         }
-        return result;
+        return map;
     }
 
-    private SheetData<T> Load<T>(SheetData<Dictionary<string, object?>> data,
-        IDictionary<string, string>? titleAliases = null,
-        ICollection<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
-        where T : class, new()
-    {
-        List<T> instances = data.Instances
-                                .Select(set => Load(set, titleAliases, additionalLoaders))
-                                .RemoveNulls()
-                                .ToList();
-        return new SheetData<T>(instances, data.Titles);
-    }
-
-    private T? Load<T>(IDictionary<string, object?> valueSet, IDictionary<string, string>? titleAliases = null,
+    private T? Load<T>(IDictionary<string, object?> map, IDictionary<string, string>? titleAliases = null,
         IEnumerable<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
         where T : class, new()
     {
-        T? result = new();
+        T? instance = new();
         Type type = typeof(T);
-        result = Load(valueSet, titleAliases, result, type.GetProperties(), info => info.PropertyType,
+        instance = Load(map, titleAliases, instance, type.GetProperties(), info => info.PropertyType,
             (info, obj, val) => info.SetValue(obj, val));
-        result = Load(valueSet, titleAliases, result, type.GetFields(), info => info.FieldType,
+        instance = Load(map, titleAliases, instance, type.GetFields(), info => info.FieldType,
             (info, obj, val) => info.SetValue(obj, val));
         if (additionalLoaders is not null)
         {
             // ReSharper disable once LoopCanBeConvertedToQuery
             foreach (Func<IDictionary<string, object?>, T?, T?> loader in additionalLoaders)
             {
-                result = loader(valueSet, result);
+                instance = loader(map, instance);
             }
         }
-        return result;
+        return instance;
     }
 
-    private TInstance? Load<TInstance, TInfo>(IDictionary<string, object?> valueSet,
-        IDictionary<string, string>? titleAliases, TInstance? result,
-        IEnumerable<TInfo> members, Func<TInfo, Type> typeProvider, Action<TInfo, TInstance, object?> setter)
+    private TInstance? Load<TInstance, TInfo>(IDictionary<string, object?> map,
+        IDictionary<string, string>? titleAliases, TInstance? instance, IEnumerable<TInfo> members,
+        Func<TInfo, Type> typeProvider, Action<TInfo, TInstance, object?> setter)
         where TInstance : class
         where TInfo : MemberInfo
     {
-        if (result is null)
+        if (instance is null)
         {
             return null;
         }
@@ -192,45 +185,42 @@ public class Sheet
 
             Type type = typeProvider(info);
             Func<object?, object?>? converter = _converters.AsReadOnly().GetValueOrDefault(type);
-            object? value = valueSet.TryGetValue(title, out object? rawValue) ? converter?.Invoke(rawValue) : null;
-            if (required && value is null or "")
+            object? converted = map.TryGetValue(title, out object? value) ? converter?.Invoke(value) : null;
+            if (required && converted is null or "")
             {
                 return null;
             }
-            setter(info, result, value);
+            setter(info, instance, converted);
         }
 
-        return result;
+        return instance;
     }
 
-    private Task SaveAsync(string range, SheetData<Dictionary<string, object?>> data)
+    private Task SaveAsync(string range, List<Dictionary<string, object?>> maps)
     {
-        List<IList<object>> rawValueSets = new() { data.Titles.ToList<object>() };
-        rawValueSets.AddRange(data.Instances
-                                  .Select(set => data.Titles
-                                                     .Select(t => set.GetValueOrDefault(t) ?? "")
-                                                     .ToList()));
-        return _provider.UpdateValuesAsync(range, rawValueSets);
+        List<IList<object>> rows = new() { Titles.ToList<object>() };
+        rows.AddRange(maps.Select(set => Titles.Select(t => set.GetValueOrDefault(t) ?? "").ToList()));
+        return _provider.UpdateValuesAsync(range, rows);
     }
 
     private static Dictionary<string, object?> Save<T>(T instance, IDictionary<string, string>? titleAliases = null,
         IEnumerable<Action<T, IDictionary<string, object?>>>? additionalSavers = null)
     {
-        Dictionary<string, object?> result = new();
+        Dictionary<string, object?> map = new();
         Type type = typeof(T);
-        Save(instance, result, type.GetProperties(), (info, obj) => info.GetValue(obj), titleAliases);
-        Save(instance, result, type.GetFields(), (info, obj) => info.GetValue(obj), titleAliases);
+        Save(instance, map, type.GetProperties(), (info, obj) => info.GetValue(obj), titleAliases);
+        Save(instance, map, type.GetFields(), (info, obj) => info.GetValue(obj), titleAliases);
         if (additionalSavers is not null)
         {
             foreach (Action<T, IDictionary<string, object?>> saver in additionalSavers)
             {
-                saver(instance, result);
+                saver(instance, map);
             }
         }
-        return result;
+        return map;
     }
 
-    private static void Save<TInstance, TInfo>(TInstance instance, Dictionary<string, object?> result,
+    private static void Save<TInstance, TInfo>(TInstance instance, Dictionary<string, object?> map,
         IEnumerable<TInfo> members, Func<TInfo, TInstance, object?> getter,
         IDictionary<string, string>? titleAliases = null)
         where TInfo : MemberInfo
@@ -245,7 +235,7 @@ public class Sheet
 
             object? value = getter(info, instance);
             string title = GetTitle(sheetField, titleAliases, info);
-            result[title] = sheetField.Format is null ? value : string.Format(sheetField.Format, value);
+            map[title] = sheetField.Format is null ? value : string.Format(sheetField.Format, value);
         }
     }
 
