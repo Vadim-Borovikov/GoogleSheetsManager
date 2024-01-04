@@ -25,6 +25,15 @@ public static class ObjectExtensions
         return int.TryParse(o?.ToString(), out i) ? i : null;
     }
 
+    public static byte? ToByte(this object? o)
+    {
+        if (o is byte b)
+        {
+            return b;
+        }
+        return byte.TryParse(o?.ToString(), out b) ? b : null;
+    }
+
     public static long? ToLong(this object? o)
     {
         if (o is long l)
@@ -38,10 +47,10 @@ public static class ObjectExtensions
     {
         return o switch
         {
-            decimal dec => dec,
-            long l      => l,
-            double d    => (decimal) d,
-            _           => null
+            decimal d => d,
+            long l    => l,
+            double d  => (decimal) d,
+            _         => decimal.TryParse(o?.ToString(), out decimal d) ? d : null
         };
     }
 

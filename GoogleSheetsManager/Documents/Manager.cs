@@ -123,6 +123,8 @@ public sealed class Manager : IDisposable
         { typeof(bool?), v => v.ToBool() },
         { typeof(int), v => v.ToInt() },
         { typeof(int?), v => v.ToInt() },
+        { typeof(byte), v => v.ToByte() },
+        { typeof(byte?), v => v.ToByte() },
         { typeof(long), v => v.ToLong() },
         { typeof(long?), v => v.ToLong() },
         { typeof(decimal), v => v.ToDecimal() },
