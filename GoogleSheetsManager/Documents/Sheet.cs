@@ -61,6 +61,14 @@ public class Sheet
         return SaveAsync(AddTitleTo(range), maps);
     }
 
+    public Task AddAsync<T>(string range, List<T> instances, IDictionary<string, string>? titleAliases = null,
+        IEnumerable<Action<T, IDictionary<string, object?>>>? additionalSavers = null)
+    {
+        List<Dictionary<string, object?>> maps =
+            instances.Select(i => Save(i, titleAliases, additionalSavers)).ToList();
+        return AddAsync(AddTitleTo(range), maps);
+    }
+
     public Task SaveRawAsync(string range, IList<IList<object>> rows)
     {
         range = AddTitleTo(range);
@@ -201,6 +209,13 @@ public class Sheet
         List<IList<object>> rows = new() { Titles.ToList<object>() };
         rows.AddRange(maps.Select(set => Titles.Select(t => set.GetValueOrDefault(t) ?? "").ToList()));
         return _provider.UpdateValuesAsync(range, rows);
+    }
+
+    private Task AddAsync(string range, List<Dictionary<string, object?>> maps)
+    {
+        List<IList<object>> rows =
+            new(maps.Select(set => Titles.Select(t => set.GetValueOrDefault(t) ?? "").ToList()));
+        return _provider.AppendValuesAsync(range, rows);
     }
 
     private static Dictionary<string, object?> Save<T>(T instance, IDictionary<string, string>? titleAliases = null,

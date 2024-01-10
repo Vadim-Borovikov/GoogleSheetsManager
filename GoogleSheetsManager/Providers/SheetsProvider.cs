@@ -31,6 +31,15 @@ internal sealed class SheetsProvider
         return valueRange.Values;
     }
 
+    public Task AppendValuesAsync(string range, IList<IList<object>> values)
+    {
+        ValueRange body = new() { Values = values };
+        SpreadsheetsResource.ValuesResource.AppendRequest request =
+            _service.Spreadsheets.Values.Append(body, _spreadsheetId, range);
+        request.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.USERENTERED;
+        return request.ExecuteAsync();
+    }
+
     public Task UpdateValuesAsync(string range, IList<IList<object>> values)
     {
         ValueRange body = new() { Values = values };
