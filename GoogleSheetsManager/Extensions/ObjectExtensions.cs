@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using GryphonUtilities.Extensions;
 using GryphonUtilities.Time;
 using JetBrains.Annotations;
 
@@ -50,8 +54,32 @@ public static class ObjectExtensions
             decimal d => d,
             long l    => l,
             double d  => (decimal) d,
-            _         => decimal.TryParse(o?.ToString(), out decimal d) ? d : null
+            _         => decimal.TryParse(o?.ToString(), CultureInfo.InvariantCulture, out decimal d) ? d : null
         };
+    }
+
+    public static List<T>? ToList<T>(this object? o, string separator, Func<string, T?> converter)
+    {
+        if (o is IEnumerable<T> l)
+        {
+            return l.ToList();
+        }
+
+        string[]? parts = o?.ToString()?.Split(separator);
+
+        return parts?.Select(converter).TryDenullAll();
+    }
+
+    public static List<T>? ToList<T>(this object? o, string separator, Func<string, T?> converter) where T : struct
+    {
+        if (o is IEnumerable<T> l)
+        {
+            return l.ToList();
+        }
+
+        string[]? parts = o?.ToString()?.Split(separator);
+
+        return parts?.Select(converter).TryDenullAll();
     }
 
     public static DateOnly? ToDateOnly(this object? o, Clock clock)

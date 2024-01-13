@@ -43,7 +43,7 @@ public class Sheet
     {
         List<Dictionary<string, object?>> maps = await LoadAsync(AddTitleTo(range), formula);
         return maps.Select(m => Load(m, titleAliases, additionalLoaders))
-                   .RemoveNulls()
+                   .SkipNulls()
                    .ToList();
     }
 

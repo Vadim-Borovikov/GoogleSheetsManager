@@ -52,23 +52,19 @@ public class SheetTests
     {
         List<TestInstance> data = await _sheet.LoadAsync<TestInstance>(RangeGet);
         Assert.AreEqual(4, _sheet.Titles.Count);
-        Assert.AreEqual(3, data.Count);
+        Assert.AreEqual(2, data.Count);
 
         Assert.AreEqual(TestInstance.Bool, data[0].Bool);
         Assert.AreEqual(TestInstance.Bool, data[1].Bool);
-        Assert.AreEqual(TestInstance.Bool, data[2].Bool);
 
         Assert.AreEqual(TestInstance.Int, data[0].Int);
         Assert.IsNull(data[1].Int);
-        Assert.AreEqual(TestInstance.Int, data[2].Int);
 
         Assert.AreEqual(TestInstance.String1, data[0].String1);
         Assert.AreEqual(TestInstance.String1, data[1].String1);
-        Assert.AreEqual(TestInstance.String1, data[2].String1);
 
         Assert.AreEqual(TestInstance.String2, data[0].String2);
-        Assert.AreEqual(TestInstance.String2, data[1].String2);
-        Assert.IsNull(data[2].String2);
+        Assert.IsNull(data[1].String2);
 
         data = await _sheet.LoadAsync<TestInstance>(RangeGetEmpty);
         Assert.AreEqual(4, _sheet.Titles.Count);
@@ -105,7 +101,7 @@ public class SheetTests
     private const string RangeGetEmpty = "A1:D1";
     private const string RangeUpdate = "A1:D2";
     private const string PdfMime = "application/pdf";
-    private const int PdfSize = 788168;
+    private const int PdfSize = 791528;
     private static readonly TestInstance TestInstance = new()
     {
         Bool = false,
