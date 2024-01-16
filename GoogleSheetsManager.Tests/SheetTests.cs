@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using GoogleSheetsManager.Documents;
 using Microsoft.Extensions.Configuration;
@@ -19,9 +20,10 @@ public class SheetTests
                                                    .AddJsonFile("appsettings.json")
                                                    .Build()
                                                    .Get<Config>();
-        string? json = (config as IConfigGoogleSheets)?.GetCredentialJson();
-        Assert.IsFalse(string.IsNullOrWhiteSpace(json));
-        Assert.IsFalse(string.IsNullOrWhiteSpace(config?.GoogleSheetId));
+        Assert.IsNotNull(config);
+        string credentialJson = JsonSerializer.Serialize(config!.Credential);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(credentialJson));
+        Assert.IsFalse(string.IsNullOrWhiteSpace(config.GoogleSheetId));
         _id = config.GoogleSheetId;
         _manager = new Manager(config);
         Document document = _manager.GetOrAdd(_id);
