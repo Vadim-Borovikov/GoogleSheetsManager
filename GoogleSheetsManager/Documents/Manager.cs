@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
@@ -18,7 +19,7 @@ public sealed class Manager : IDisposable
 {
     public Manager(IConfigGoogleSheets config)
     {
-        string credentialJson = config.GetCredentialJson();
+        string credentialJson = JsonSerializer.Serialize(config.Credential);
         GoogleCredential credential = GoogleCredential.FromJson(credentialJson).CreateScoped(SheetsProvider.Scopes);
         _serviceInitializer = new BaseClientService.Initializer
         {

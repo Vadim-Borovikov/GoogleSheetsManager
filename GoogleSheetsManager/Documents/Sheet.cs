@@ -16,8 +16,6 @@ public class Sheet
 {
     public string Name { get; private set; }
 
-    public List<string> Titles { get; private set; } = new();
-
     public int? Index => _sheet?.Properties.Index;
 
     internal Sheet(Google.Apis.Sheets.v4.Data.Sheet sheet, SheetsProvider provider, Document document,
@@ -41,16 +39,10 @@ public class Sheet
         ICollection<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
         where T : class, new()
     {
-        List<Dictionary<string, object?>> maps = await LoadAsync(AddTitleTo(range), formula);
+        List<Dictionary<string, object?>> maps = await LoadAsync(AddNameTo(range), formula);
         return maps.Select(m => Load(m, titleAliases, additionalLoaders))
                    .SkipNulls()
                    .ToList();
-    }
-
-    public async Task LoadTitlesAsync(string range)
-    {
-        IList<IList<object>> rows = await _provider.GetValueListAsync(AddTitleToFirstRaw(range), false);
-        Titles = GetTitles(rows[0]);
     }
 
     public Task SaveAsync<T>(string range, List<T> instances, IDictionary<string, string>? titleAliases = null,
@@ -58,7 +50,7 @@ public class Sheet
     {
         List<Dictionary<string, object?>> maps =
             instances.Select(i => Save(i, titleAliases, additionalSavers)).ToList();
-        return SaveAsync(AddTitleTo(range), maps);
+        return SaveAsync(AddNameTo(range), maps);
     }
 
     public Task AddAsync<T>(string range, List<T> instances, IDictionary<string, string>? titleAliases = null,
@@ -66,16 +58,16 @@ public class Sheet
     {
         List<Dictionary<string, object?>> maps =
             instances.Select(i => Save(i, titleAliases, additionalSavers)).ToList();
-        return AddAsync(AddTitleTo(range), maps);
+        return AddAsync(AddNameTo(range), maps);
     }
 
     public Task SaveRawAsync(string range, IList<IList<object>> rows)
     {
-        range = AddTitleTo(range);
+        range = AddNameTo(range);
         return _provider.UpdateValuesAsync(range, rows);
     }
 
-    public Task ClearAsync(string range) => _provider.ClearValuesAsync(AddTitleTo(range));
+    public Task ClearAsync(string range) => _provider.ClearValuesAsync(AddNameTo(range));
 
     public async Task RenameAsync(string newName)
     {
@@ -94,13 +86,19 @@ public class Sheet
 
     internal void SetSheet(Google.Apis.Sheets.v4.Data.Sheet sheet) => _sheet = sheet;
 
-    private string AddTitleTo(string range)
+    private async Task<List<string>> LoadTitlesAsync(string range)
+    {
+        IList<IList<object>> rows = await _provider.GetValueListAsync(GetFirstRawWithName(range), false);
+        return GetTitles(rows);
+    }
+
+    private string AddNameTo(string range)
     {
         Range.Range fullRange = ParseAndAddName(range);
         return fullRange.ToString();
     }
 
-    private string AddTitleToFirstRaw(string range)
+    private string GetFirstRawWithName(string range)
     {
         Range.Range fullRange = ParseAndAddName(range);
         return fullRange.GetFirstRow().ToString();
@@ -116,23 +114,26 @@ public class Sheet
     private async Task<List<Dictionary<string, object?>>> LoadAsync(string range, bool formula = false)
     {
         IList<IList<object>> rows = await _provider.GetValueListAsync(range, formula);
-        if (rows.Count < 1)
+        if (rows.Count < 2)
         {
             return new List<Dictionary<string, object?>>();
         }
 
-        Titles = GetTitles(rows[0]);
-        return rows.Skip(1).Select(Organize).ToList();
+        List<string> titles = GetTitles(rows);
+        return rows.Skip(1).Select(r => Organize(r, titles)).ToList();
     }
 
-    private static List<string> GetTitles(IEnumerable<object> row) => row.Select(o => o.ToString() ?? "").ToList();
+    private static List<string> GetTitles(IList<IList<object>> rows)
+    {
+        return rows.First().Select(o => o.ToString() ?? "").ToList();
+    }
 
-    private Dictionary<string, object?> Organize(IList<object> row)
+    private Dictionary<string, object?> Organize(IList<object> row, IList<string> titles)
     {
         Dictionary<string, object?> map = new();
-        for (int i = 0; i < Titles.Count; ++i)
+        for (int i = 0; i < titles.Count; ++i)
         {
-            map[Titles[i]] = i < row.Count ? row[i] : null;
+            map[titles[i]] = i < row.Count ? row[i] : null;
         }
         return map;
     }
@@ -204,18 +205,20 @@ public class Sheet
         return instance;
     }
 
-    private Task SaveAsync(string range, List<Dictionary<string, object?>> maps)
+    private async Task SaveAsync(string range, List<Dictionary<string, object?>> maps)
     {
-        List<IList<object>> rows = new() { Titles.ToList<object>() };
-        rows.AddRange(maps.Select(set => Titles.Select(t => set.GetValueOrDefault(t) ?? "").ToList()));
-        return _provider.UpdateValuesAsync(range, rows);
+        List<string> titles = await LoadTitlesAsync(range);
+        List<IList<object>> rows = new() { titles.ToList<object>() };
+        rows.AddRange(maps.Select(set => titles.Select(t => set.GetValueOrDefault(t) ?? "").ToList()));
+        await _provider.UpdateValuesAsync(range, rows);
     }
 
-    private Task AddAsync(string range, List<Dictionary<string, object?>> maps)
+    private async Task AddAsync(string range, List<Dictionary<string, object?>> maps)
     {
+        List<string> titles = await LoadTitlesAsync(range);
         List<IList<object>> rows =
-            new(maps.Select(set => Titles.Select(t => set.GetValueOrDefault(t) ?? "").ToList()));
-        return _provider.AppendValuesAsync(range, rows);
+            new(maps.Select(set => titles.Select(t => set.GetValueOrDefault(t) ?? "").ToList()));
+        await _provider.AppendValuesAsync(range, rows);
     }
 
     private static Dictionary<string, object?> Save<T>(T instance, IDictionary<string, string>? titleAliases = null,
