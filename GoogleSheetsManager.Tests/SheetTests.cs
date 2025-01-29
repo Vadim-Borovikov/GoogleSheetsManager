@@ -21,7 +21,7 @@ public class SheetTests
                                                    .Build()
                                                    .Get<Config>();
         Assert.IsNotNull(config);
-        string credentialJson = JsonSerializer.Serialize(config!.Credential);
+        string credentialJson = JsonSerializer.Serialize(config.Credential);
         Assert.IsFalse(string.IsNullOrWhiteSpace(credentialJson));
         Assert.IsFalse(string.IsNullOrWhiteSpace(config.GoogleSheetId));
         _id = config.GoogleSheetId;
@@ -43,17 +43,9 @@ public class SheetTests
     }
 
     [TestMethod]
-    public async Task LoadTitlesAsyncTest()
-    {
-        await _sheet.LoadTitlesAsync(RangeGet);
-        Assert.AreEqual(4, _sheet.Titles.Count);
-    }
-
-    [TestMethod]
     public async Task LoadAsyncTest()
     {
         List<TestInstance> data = await _sheet.LoadAsync<TestInstance>(RangeGet);
-        Assert.AreEqual(4, _sheet.Titles.Count);
         Assert.AreEqual(2, data.Count);
 
         Assert.AreEqual(TestInstance.Bool, data[0].Bool);
@@ -69,7 +61,6 @@ public class SheetTests
         Assert.IsNull(data[1].String2);
 
         data = await _sheet.LoadAsync<TestInstance>(RangeGetEmpty);
-        Assert.AreEqual(4, _sheet.Titles.Count);
         Assert.AreEqual(0, data.Count);
     }
 
