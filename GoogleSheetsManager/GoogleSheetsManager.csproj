@@ -3,7 +3,7 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
-    <Version>34.0.1</Version>
+    <Version>35.0.0-a00</Version>
     <Authors>Vadim Borovikov</Authors>
 	<Company>Care Space</Company>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -24,9 +24,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3674" />
-    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.68.0.3658" />
-    <PackageReference Include="GryphonUtilities" Version="14.0.1" />
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3699" />
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.69.0.3694" />
+    <PackageReference Include="GryphonUtilities" Version="15.0.0-a00" />
     <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
   </ItemGroup>
 
