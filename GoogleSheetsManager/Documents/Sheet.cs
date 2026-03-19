@@ -45,19 +45,17 @@ public class Sheet
                    .ToList();
     }
 
-    public Task SaveAsync<T>(string range, List<T> instances, IDictionary<string, string>? titleAliases = null,
+    public Task SaveAsync<T>(string range, IEnumerable<T> instances, IDictionary<string, string>? titleAliases = null,
         IEnumerable<Action<T, IDictionary<string, object?>>>? additionalSavers = null)
     {
-        List<Dictionary<string, object?>> maps =
-            instances.Select(i => Save(i, titleAliases, additionalSavers)).ToList();
+        IEnumerable<Dictionary<string, object?>> maps = instances.Select(i => Save(i, titleAliases, additionalSavers));
         return SaveAsync(AddNameTo(range), maps);
     }
 
-    public Task AddAsync<T>(string range, List<T> instances, IDictionary<string, string>? titleAliases = null,
+    public Task AddAsync<T>(string range, IEnumerable<T> instances, IDictionary<string, string>? titleAliases = null,
         IEnumerable<Action<T, IDictionary<string, object?>>>? additionalSavers = null)
     {
-        List<Dictionary<string, object?>> maps =
-            instances.Select(i => Save(i, titleAliases, additionalSavers)).ToList();
+        IEnumerable<Dictionary<string, object?>> maps = instances.Select(i => Save(i, titleAliases, additionalSavers));
         return AddAsync(AddNameTo(range), maps);
     }
 
@@ -205,7 +203,7 @@ public class Sheet
         return instance;
     }
 
-    private async Task SaveAsync(string range, List<Dictionary<string, object?>> maps)
+    private async Task SaveAsync(string range, IEnumerable<Dictionary<string, object?>> maps)
     {
         List<string> titles = await LoadTitlesAsync(range);
         List<IList<object>> rows = new() { titles.ToList<object>() };
@@ -213,7 +211,7 @@ public class Sheet
         await _provider.UpdateValuesAsync(range, rows);
     }
 
-    private async Task AddAsync(string range, List<Dictionary<string, object?>> maps)
+    private async Task AddAsync(string range, IEnumerable<Dictionary<string, object?>> maps)
     {
         List<string> titles = await LoadTitlesAsync(range);
         List<IList<object>> rows =
