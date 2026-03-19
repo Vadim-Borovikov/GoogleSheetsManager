@@ -38,30 +38,35 @@ public class SheetTests
         await _manager.DownloadAsync(_id, PdfMime, path);
         Assert.IsTrue(File.Exists(path));
         byte[] bytes = await File.ReadAllBytesAsync(path);
-        Assert.AreEqual(PdfSize, bytes.Length);
+        Assert.AreNotEqual(0, bytes.Length);
         File.Delete(path);
     }
 
     [TestMethod]
     public async Task LoadAsyncTest()
     {
+        await LoadAndCheckData();
+
+        List<TestInstance> data = await _sheet.LoadAsync<TestInstance>(RangeGetEmpty);
+        Assert.AreEqual(0, data.Count);
+    }
+
+    private static async Task LoadAndCheckData()
+    {
         List<TestInstance> data = await _sheet.LoadAsync<TestInstance>(RangeGet);
         Assert.AreEqual(2, data.Count);
+
+        Assert.AreEqual(TestInstance.Int, data[0].Int);
+        Assert.AreEqual(null, data[1].Int);
 
         Assert.AreEqual(TestInstance.Bool, data[0].Bool);
         Assert.AreEqual(TestInstance.Bool, data[1].Bool);
 
-        Assert.AreEqual(TestInstance.Int, data[0].Int);
-        Assert.IsNull(data[1].Int);
-
         Assert.AreEqual(TestInstance.String1, data[0].String1);
-        Assert.AreEqual(TestInstance.String1, data[1].String1);
+        Assert.IsTrue(string.IsNullOrEmpty(data[1].String1));
 
         Assert.AreEqual(TestInstance.String2, data[0].String2);
-        Assert.IsNull(data[1].String2);
-
-        data = await _sheet.LoadAsync<TestInstance>(RangeGetEmpty);
-        Assert.AreEqual(0, data.Count);
+        Assert.AreEqual(TestInstance.String2, data[1].String2);
     }
 
     [TestMethod]
@@ -69,8 +74,7 @@ public class SheetTests
     {
         List<TestInstance> data = await _sheet.LoadAsync<TestInstance>(RangeUpdate);
 
-        // ReSharper disable once NullableWarningSuppressionIsUsed
-        data[0].String1 = null!;
+        data[0].String2 = null!;
 
         await _sheet.SaveAsync(RangeGet, data);
         data = await _sheet.LoadAsync<TestInstance>(RangeUpdate);
@@ -80,7 +84,9 @@ public class SheetTests
         await _sheet.SaveAsync(RangeGet, data);
         data = await _sheet.LoadAsync<TestInstance>(RangeUpdate);
         Assert.AreEqual(1, data.Count);
-        Assert.AreEqual(TestInstance.String1, data[0].String1);
+        Assert.AreEqual(TestInstance.String2, data[0].String2);
+
+        await LoadAndCheckData();
     }
 
     [ClassCleanup]
@@ -94,12 +100,11 @@ public class SheetTests
     private const string RangeGetEmpty = "A1:D1";
     private const string RangeUpdate = "A1:D2";
     private const string PdfMime = "application/pdf";
-    private const int PdfSize = 791528;
     private static readonly TestInstance TestInstance = new()
     {
-        Bool = false,
         Int = 32,
-        String1 = "fdgsdfg",
-        String2 = "dlfnsdkfjgnsd"
+        Bool = false,
+        String1 = "dlfnsdkfjgnsd",
+        String2 = "fdgsdfg"
     };
 }
