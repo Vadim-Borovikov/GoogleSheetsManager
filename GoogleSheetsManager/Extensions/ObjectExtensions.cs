@@ -58,6 +58,15 @@ public static class ObjectExtensions
         };
     }
 
+    public static T? ToEnum<T>(this object? o) where T : struct, Enum
+    {
+        if (o is T e)
+        {
+            return e;
+        }
+        return Enum.TryParse(o?.ToString(), out e) ? e : null;
+    }
+
     public static List<T>? ToList<T>(this object? o, string separator, Func<string, T?> converter)
     {
         if (o is IEnumerable<T> l)
