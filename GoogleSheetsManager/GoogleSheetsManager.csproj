@@ -24,10 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3699" />
-    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.69.0.3694" />
-    <PackageReference Include="GryphonUtilities" Version="15.0.0-a01" />
-    <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.73.0.4081" />
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.73.0.4061" />
+    <PackageReference Include="GryphonUtilities" Version="15.0.0-a07" />
+    <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="GenerateNuspec">

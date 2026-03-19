@@ -20,7 +20,9 @@ public sealed class Manager : IDisposable
     public Manager(IConfigGoogleSheets config)
     {
         string credentialJson = JsonSerializer.Serialize(config.Credential);
-        GoogleCredential credential = GoogleCredential.FromJson(credentialJson).CreateScoped(SheetsProvider.Scopes);
+
+        ServiceAccountCredential credential = CredentialFactory.FromJson<ServiceAccountCredential>(credentialJson);
+        credential.Scopes = SheetsProvider.Scopes;
         _serviceInitializer = new BaseClientService.Initializer
         {
             HttpClientInitializer = credential,

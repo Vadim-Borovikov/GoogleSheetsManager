@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using GoogleSheetsManager.Documents;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 // ReSharper disable NullableWarningSuppressionIsUsed
@@ -10,9 +11,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace GoogleSheetsManager.Tests;
 
 [TestClass]
+[UsedImplicitly]
 public class SheetTests
 {
     [ClassInitialize]
+    [UsedImplicitly]
     public static void ClassInitialize(TestContext _)
     {
         Config? config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
@@ -24,13 +27,14 @@ public class SheetTests
         string credentialJson = JsonSerializer.Serialize(config.Credential);
         Assert.IsFalse(string.IsNullOrWhiteSpace(credentialJson));
         Assert.IsFalse(string.IsNullOrWhiteSpace(config.GoogleSheetId));
-        _id = config.GoogleSheetId;
+        _id = config.GoogleSheetId!;
         _manager = new Manager(config);
         Document document = _manager.GetOrAdd(_id);
         _sheet = document.GetOrAddSheet(SheeetTitle);
     }
 
     [TestMethod]
+    [UsedImplicitly]
     public async Task DownloadAsyncTest()
     {
         string path = Path.GetTempFileName();
@@ -43,6 +47,7 @@ public class SheetTests
     }
 
     [TestMethod]
+    [UsedImplicitly]
     public async Task LoadAsyncTest()
     {
         await LoadAndCheckData();
@@ -70,6 +75,7 @@ public class SheetTests
     }
 
     [TestMethod]
+    [UsedImplicitly]
     public async Task SaveAsyncTest()
     {
         List<TestInstance> data = await _sheet.LoadAsync<TestInstance>(RangeUpdate);
@@ -90,6 +96,7 @@ public class SheetTests
     }
 
     [ClassCleanup]
+    [UsedImplicitly]
     public static void ClassCleanup() => _manager.Dispose();
 
     private static string _id = null!;
