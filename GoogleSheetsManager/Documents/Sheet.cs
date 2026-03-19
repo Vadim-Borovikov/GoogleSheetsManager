@@ -206,6 +206,8 @@ public class Sheet
     private async Task SaveAsync(string range, IEnumerable<Dictionary<string, object?>> maps)
     {
         List<string> titles = await LoadTitlesAsync(range);
+        await ClearAsync(range);
+
         List<IList<object>> rows = new() { titles.ToList<object>() };
         rows.AddRange(maps.Select(set => titles.Select(t => set.GetValueOrDefault(t) ?? "").ToList()));
         await _provider.UpdateValuesAsync(range, rows);

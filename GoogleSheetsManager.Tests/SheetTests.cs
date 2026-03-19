@@ -83,14 +83,21 @@ public class SheetTests
         data[0].String2 = null!;
 
         await _sheet.SaveAsync(RangeGet, data);
-        data = await _sheet.LoadAsync<TestInstance>(RangeUpdate);
+        data = await _sheet.LoadAsync<TestInstance>(RangeGet);
         Assert.AreEqual(0, data.Count);
 
         data.Add(TestInstance);
         await _sheet.SaveAsync(RangeGet, data);
-        data = await _sheet.LoadAsync<TestInstance>(RangeUpdate);
+        data = await _sheet.LoadAsync<TestInstance>(RangeGet);
         Assert.AreEqual(1, data.Count);
         Assert.AreEqual(TestInstance.String2, data[0].String2);
+
+        TestInstance second = new()
+        {
+            String2 = TestInstance.String2
+        };
+        data.Add(second);
+        await _sheet.SaveAsync(RangeGet, data);
 
         await LoadAndCheckData();
     }
