@@ -5,16 +5,13 @@ namespace GoogleSheetsManager.Range;
 
 internal readonly struct Bound
 {
-    internal readonly string? Column;
-    internal readonly ushort? Row;
-
     internal Bound(string? column = null, ushort? row = null)
     {
-        Column = column;
-        Row = row;
+        _column = column;
+        _row = row;
     }
 
-    public override string ToString() => $"{Column}{Row}";
+    public override string ToString() => $"{_column}{_row}";
 
     // ReSharper disable once UnusedMember.Global
     public static Bound Parse(string value)
@@ -73,4 +70,7 @@ internal readonly struct Bound
         result = new Bound(column, row);
         return true;
     }
+
+    private readonly string? _column;
+    private readonly ushort? _row;
 }

@@ -58,7 +58,7 @@ public class SheetTests
 
     private static async Task LoadAndCheckData()
     {
-        List<TestInstance> data = await _sheet.LoadAsync<TestInstance>(RangeGet);
+        List<TestInstance> data = await _sheet.LoadAsync<TestInstance>();
         Assert.AreEqual(2, data.Count);
 
         Assert.AreEqual(TestInstance.Int, data[0].Int);
@@ -82,13 +82,13 @@ public class SheetTests
 
         data[0].String2 = null!;
 
-        await _sheet.SaveAsync(RangeGet, data);
-        data = await _sheet.LoadAsync<TestInstance>(RangeGet);
+        await _sheet.SaveAsync(data);
+        data = await _sheet.LoadAsync<TestInstance>();
         Assert.AreEqual(0, data.Count);
 
         data.Add(TestInstance);
-        await _sheet.SaveAsync(RangeGet, data);
-        data = await _sheet.LoadAsync<TestInstance>(RangeGet);
+        await _sheet.SaveAsync(data);
+        data = await _sheet.LoadAsync<TestInstance>();
         Assert.AreEqual(1, data.Count);
         Assert.AreEqual(TestInstance.String2, data[0].String2);
 
@@ -97,7 +97,7 @@ public class SheetTests
             String2 = TestInstance.String2
         };
         data.Add(second);
-        await _sheet.SaveAsync(RangeGet, data);
+        await _sheet.SaveAsync(data);
 
         await LoadAndCheckData();
     }
@@ -110,7 +110,6 @@ public class SheetTests
     private static Manager _manager = null!;
     private static Sheet _sheet = null!;
     private const string SheeetTitle = "Test";
-    private const string RangeGet = "A1:D";
     private const string RangeGetEmpty = "A1:D1";
     private const string RangeUpdate = "A1:D2";
     private const string PdfMime = "application/pdf";

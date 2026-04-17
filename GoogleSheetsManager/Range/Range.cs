@@ -4,41 +4,39 @@ namespace GoogleSheetsManager.Range;
 
 internal readonly struct Range
 {
-    public readonly Bound IntervalStart;
-    public readonly Bound? IntervalEnd;
-
-    public Range(Bound intervalStart, Bound? intervalEnd = null, string? sheet = null)
+    private Range(Bound? intervalStart, Bound? intervalEnd, string? sheet)
     {
-        IntervalStart = intervalStart;
-        IntervalEnd = intervalEnd;
+        _intervalStart = intervalStart;
+        _intervalEnd = intervalEnd;
         _sheet = sheet;
     }
 
     public override string ToString()
     {
-        string? intervalEnd = IntervalEnd is null ? null : $":{IntervalEnd}";
-        string? sheet = _sheet is null ? null : $"{_sheet}!";
-        return $"{sheet}{IntervalStart}{intervalEnd}";
-    }
-
-    public Range GetFirstRow()
-    {
-        if (IntervalEnd is null)
+        if (_intervalStart is null)
         {
-            return this;
+            return _sheet ?? string.Empty;
         }
 
-        Bound intervalEnd = new(IntervalEnd.Value.Column, IntervalStart.Row);
-        return new Range(IntervalStart, intervalEnd, _sheet);
+        string? intervalEnd = _intervalEnd is null ? null : $":{_intervalEnd}";
+        string? sheet = _sheet is null ? null : $"{_sheet}!";
+        return $"{sheet}{_intervalStart}{intervalEnd}";
     }
 
-    public static Range Parse(string value)
+    public Range GetFirstRow() => new(_intervalStart ?? One, _intervalEnd ?? One, _sheet);
+
+    public static Range ParseAndAddName(string name, string? value = null)
     {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return new Range(null, null, name);
+        }
+
         if (!TryParse(value, out Range result))
         {
             throw new FormatException($"String \"{value}\" was not recognized as a valid {nameof(Range)}.");
         }
-        return result;
+        return string.IsNullOrEmpty(name) ? result : new Range(result._intervalStart, result._intervalEnd, name);
     }
 
     private static bool TryParse(string value, out Range result)
@@ -80,4 +78,8 @@ internal readonly struct Range
     }
 
     private readonly string? _sheet;
+    private readonly Bound? _intervalStart;
+    private readonly Bound? _intervalEnd;
+
+    private static readonly Bound One = new(null, 1);
 }
