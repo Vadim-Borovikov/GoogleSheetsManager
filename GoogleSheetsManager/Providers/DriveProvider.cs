@@ -1,27 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Google.Apis.Drive.v3;
 using Google.Apis.Drive.v3.Data;
-using Google.Apis.Services;
 
 namespace GoogleSheetsManager.Providers;
 
-internal sealed class DriveProvider : IDisposable
+internal sealed class DriveProvider
 {
-    public DriveProvider(BaseClientService.Initializer initializer, string fileId)
+    public DriveProvider(DriveService service, string fileId)
     {
-        _service = new DriveService(initializer);
+        _service = service;
         _fileId = fileId;
     }
-
-    public void Dispose() => _service.Dispose();
 
     public Task DeleteSpreadsheetAsync()
     {
         FilesResource.DeleteRequest request = new(_service, _fileId);
         return request.ExecuteAsync();
+    }
+
+    public async Task<string> GetNameAsync()
+    {
+        Google.Apis.Drive.v3.Data.File file = await GetFileAsync();
+        return file.Name;
     }
 
     public async Task<IList<string>> GetParentsAsync()
@@ -61,10 +63,13 @@ internal sealed class DriveProvider : IDisposable
         return request.DownloadAsync(stream);
     }
 
-    private Task<Google.Apis.Drive.v3.Data.File> GetFileAsync(string fields)
+    private Task<Google.Apis.Drive.v3.Data.File> GetFileAsync(string? fields = null)
     {
         FilesResource.GetRequest request = _service.Files.Get(_fileId);
-        request.Fields = fields;
+        if (!string.IsNullOrWhiteSpace(fields))
+        {
+            request.Fields = fields;
+        }
         return request.ExecuteAsync();
     }
 

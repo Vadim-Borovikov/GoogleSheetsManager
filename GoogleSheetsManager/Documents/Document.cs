@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Google.Apis.Drive.v3;
 
 namespace GoogleSheetsManager.Documents;
 
@@ -14,19 +15,22 @@ public class Document
 {
     public readonly string Id;
 
-    internal readonly SheetsProvider Provider;
+    internal readonly SheetsProvider SheetsProvider;
+    internal readonly DriveProvider DriveProvider;
 
-    public Document(SheetsService service, string id, IDictionary<Type, Func<object?, object?>> converters)
+    public Document(SheetsService sheetsService, DriveService driveService, string id,
+        IDictionary<Type, Func<object?, object?>> converters)
     {
         Id = id;
-        Provider = new SheetsProvider(service, id);
+        SheetsProvider = new SheetsProvider(sheetsService, id);
+        DriveProvider = new DriveProvider(driveService, id);
         _converters = converters;
         _sheets = new List<Sheet>();
     }
 
-    internal Document(SheetsService service, Spreadsheet spreadsheet,
+    internal Document(SheetsService sheetsService, DriveService driveService, Spreadsheet spreadsheet,
         IDictionary<Type, Func<object?, object?>> converters)
-        : this(service, spreadsheet.SpreadsheetId, converters)
+        : this(sheetsService, driveService, spreadsheet.SpreadsheetId, converters)
     {
         _spreadsheet = spreadsheet;
     }
@@ -37,7 +41,7 @@ public class Document
         if (sheet is null)
         {
             IDictionary<Type, Func<object?, object?>> сonverters = GetConvertersWith(additionalConverters);
-            sheet = new Sheet(title, Provider, this, сonverters);
+            sheet = new Sheet(title, SheetsProvider, this, сonverters);
             _sheets.Add(sheet);
         }
         return sheet;
@@ -61,7 +65,7 @@ public class Document
             if (sheet is null)
             {
                 IDictionary<Type, Func<object?, object?>> сonverters = GetConvertersWith(additionalConverters);
-                sheet = new Sheet(googleSheet, Provider, this, сonverters);
+                sheet = new Sheet(googleSheet, SheetsProvider, this, сonverters);
                 _sheets.Add(sheet);
             }
             else
@@ -73,7 +77,9 @@ public class Document
         return sheet;
     }
 
-    internal async Task<Spreadsheet> GetSpreadsheetAsync() => _spreadsheet ??= await Provider.LoadSpreadsheetAsync();
+    public Task<string> GetNameAsync() => DriveProvider.GetNameAsync();
+
+    internal async Task<Spreadsheet> GetSpreadsheetAsync() => _spreadsheet ??= await SheetsProvider.LoadSpreadsheetAsync();
 
     private IDictionary<Type, Func<object?, object?>> GetConvertersWith(
         IDictionary<Type, Func<object?, object?>>? additional)

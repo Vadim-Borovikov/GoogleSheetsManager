@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
@@ -28,7 +29,8 @@ public sealed class Manager : IDisposable
             HttpClientInitializer = credential,
             ApplicationName = config.ApplicationName
         };
-        _service = new SheetsService(_serviceInitializer);
+        _sheetsService = new SheetsService(_serviceInitializer);
+        _driveService = new DriveService(_serviceInitializer);
 
         _documents = new Dictionary<string, Document>();
 
@@ -42,14 +44,15 @@ public sealed class Manager : IDisposable
     public void Dispose()
     {
         _documents.Clear();
-        _service.Dispose();
+        _sheetsService.Dispose();
+        _driveService.Dispose();
     }
 
     public Document GetOrAdd(string id)
     {
         if (!_documents.ContainsKey(id))
         {
-            _documents[id] = new Document(_service, id, _converters);
+            _documents[id] = new Document(_sheetsService, _driveService, id, _converters);
         }
         return _documents[id];
     }
@@ -58,7 +61,8 @@ public sealed class Manager : IDisposable
     {
         if (!_documents.ContainsKey(spreadsheet.SpreadsheetId))
         {
-            _documents[spreadsheet.SpreadsheetId] = new Document(_service, spreadsheet, _converters);
+            _documents[spreadsheet.SpreadsheetId] =
+                new Document(_sheetsService, _driveService, spreadsheet, _converters);
         }
 
         return _documents[spreadsheet.SpreadsheetId];
@@ -68,27 +72,23 @@ public sealed class Manager : IDisposable
     {
         Document from = GetOrAdd(sourceId);
         Spreadsheet fromSpreadsheet = await from.GetSpreadsheetAsync();
-        Spreadsheet toSpreadsheet = await from.Provider.CreateNewSpreadsheetAsync(fromSpreadsheet.Properties);
+        Spreadsheet toSpreadsheet = await from.SheetsProvider.CreateNewSpreadsheetAsync(fromSpreadsheet.Properties);
         Document to = GetOrAdd(toSpreadsheet);
-        to.Provider.PlanToDeleteSheets(toSpreadsheet);
-        await to.Provider.CopyContentAndPlanToRenameSheetsAsync(from.Provider, fromSpreadsheet);
-        await to.Provider.ExecutePlannedAsync();
+        to.SheetsProvider.PlanToDeleteSheets(toSpreadsheet);
+        await to.SheetsProvider.CopyContentAndPlanToRenameSheetsAsync(from.SheetsProvider, fromSpreadsheet);
+        await to.SheetsProvider.ExecutePlannedAsync();
 
-        using (DriveProvider driveProvider = new(_serviceInitializer, toSpreadsheet.SpreadsheetId))
-        {
-            await driveProvider.AddPermissionToAsync("anyone", "writer", null);
-            await MoveAndRenameAsync(driveProvider, newName, folderId);
-        }
+        DriveProvider driveProvider = new(_driveService, toSpreadsheet.SpreadsheetId);
+        await driveProvider.AddPermissionToAsync("anyone", "writer", null);
+        await MoveAndRenameAsync(driveProvider, newName, folderId);
 
         return to;
     }
 
     public async Task DeleteAsync(string id)
     {
-        using (DriveProvider driveProvider = new(_serviceInitializer, id))
-        {
-            await driveProvider.DeleteSpreadsheetAsync();
-        }
+        DriveProvider driveProvider = new(_driveService, id);
+        await driveProvider.DeleteSpreadsheetAsync();
         _documents.Remove(id);
     }
 
@@ -103,10 +103,8 @@ public sealed class Manager : IDisposable
 
     public async Task DownloadAsync(string id, string mimeType, Stream stream)
     {
-        using (DriveProvider driveProvider = new(_serviceInitializer, id))
-        {
-            await driveProvider.DownloadAsync(mimeType, stream);
-        }
+        DriveProvider driveProvider = new(_driveService, id);
+        await driveProvider.DownloadAsync(mimeType, stream);
     }
 
     private static async Task MoveAndRenameAsync(DriveProvider provider, string newName, string folderId)
@@ -117,7 +115,8 @@ public sealed class Manager : IDisposable
     }
 
     private readonly BaseClientService.Initializer _serviceInitializer;
-    private readonly SheetsService _service;
+    private readonly SheetsService _sheetsService;
+    private readonly DriveService _driveService;
     private readonly IDictionary<string, Document> _documents;
 
     private readonly Dictionary<Type, Func<object?, object?>> _converters = new()
