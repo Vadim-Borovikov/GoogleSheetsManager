@@ -34,15 +34,26 @@ public class Sheet
         _converters = converters;
     }
 
-    public async Task<List<T>> LoadAsync<T>(string? range = null, bool formula = false,
+    public async Task<SheetLoadedData<T>> LoadAsync<T>(string? range = null, bool formula = false,
         IDictionary<string, string>? titleAliases = null,
         ICollection<Func<IDictionary<string, object?>, T?, T?>>? additionalLoaders = null)
         where T : class, new()
     {
-        List<Dictionary<string, object?>> maps = await LoadAsync(range, formula);
-        return maps.Select(m => Load(m, titleAliases, additionalLoaders))
-                   .SkipNulls()
-                   .ToList();
+        Range.Range fullRange = ParseAndAddName(range);
+        IList<IList<object>> rows = await _provider.GetValueListAsync(fullRange.ToString(), formula);
+        if (rows.Count < 2)
+        {
+            return new SheetLoadedData<T>();
+        }
+
+        List<string> titles = GetTitles(rows);
+
+        List<Dictionary<string, object?>> maps = rows.Skip(1).Select(r => Organize(r, titles)).ToList();
+        List<T> instances = maps.Select(m => Load(m, titleAliases, additionalLoaders))
+                                .SkipNulls()
+                                .ToList();
+
+        return new SheetLoadedData<T>(instances, titles);
     }
 
     public Task SaveAsync<T>(IEnumerable<T> instances, string? range = null,
@@ -88,6 +99,12 @@ public class Sheet
         Name = newName;
     }
 
+    public Task<List<string>> LoadTitlesAsync(string? range = null)
+    {
+        Range.Range fullRange = ParseAndAddName(range);
+        return LoadTitlesAsync(fullRange);
+    }
+
     internal void SetSheet(Google.Apis.Sheets.v4.Data.Sheet sheet) => _sheet = sheet;
 
     private async Task<List<string>> LoadTitlesAsync(Range.Range range)
@@ -97,19 +114,6 @@ public class Sheet
     }
 
     private Range.Range ParseAndAddName(string? range) => Range.Range.ParseAndAddName(Name, range);
-
-    private async Task<List<Dictionary<string, object?>>> LoadAsync(string? range, bool formula = false)
-    {
-        Range.Range fullRange = ParseAndAddName(range);
-        IList<IList<object>> rows = await _provider.GetValueListAsync(fullRange.ToString(), formula);
-        if (rows.Count < 2)
-        {
-            return new List<Dictionary<string, object?>>();
-        }
-
-        List<string> titles = GetTitles(rows);
-        return rows.Skip(1).Select(r => Organize(r, titles)).ToList();
-    }
 
     private static List<string> GetTitles(IList<IList<object>> rows)
     {

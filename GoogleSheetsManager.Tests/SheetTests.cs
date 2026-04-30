@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using GoogleSheetsManager.Documents;
@@ -52,52 +51,52 @@ public class SheetTests
     {
         await LoadAndCheckData();
 
-        List<TestInstance> data = await _sheet.LoadAsync<TestInstance>(RangeGetEmpty);
-        Assert.AreEqual(0, data.Count);
+        SheetLoadedData<TestInstance> loadedData = await _sheet.LoadAsync<TestInstance>(RangeGetEmpty);
+        Assert.AreEqual(0, loadedData.Instances.Count);
     }
 
     private static async Task LoadAndCheckData()
     {
-        List<TestInstance> data = await _sheet.LoadAsync<TestInstance>();
-        Assert.AreEqual(2, data.Count);
+        SheetLoadedData<TestInstance> loadedData = await _sheet.LoadAsync<TestInstance>();
+        Assert.AreEqual(2, loadedData.Instances.Count);
 
-        Assert.AreEqual(TestInstance.Int, data[0].Int);
-        Assert.AreEqual(null, data[1].Int);
+        Assert.AreEqual(TestInstance.Int, loadedData.Instances[0].Int);
+        Assert.AreEqual(null, loadedData.Instances[1].Int);
 
-        Assert.AreEqual(TestInstance.Bool, data[0].Bool);
-        Assert.AreEqual(TestInstance.Bool, data[1].Bool);
+        Assert.AreEqual(TestInstance.Bool, loadedData.Instances[0].Bool);
+        Assert.AreEqual(TestInstance.Bool, loadedData.Instances[1].Bool);
 
-        Assert.AreEqual(TestInstance.String1, data[0].String1);
-        Assert.IsTrue(string.IsNullOrEmpty(data[1].String1));
+        Assert.AreEqual(TestInstance.String1, loadedData.Instances[0].String1);
+        Assert.IsTrue(string.IsNullOrEmpty(loadedData.Instances[1].String1));
 
-        Assert.AreEqual(TestInstance.String2, data[0].String2);
-        Assert.AreEqual(TestInstance.String2, data[1].String2);
+        Assert.AreEqual(TestInstance.String2, loadedData.Instances[0].String2);
+        Assert.AreEqual(TestInstance.String2, loadedData.Instances[1].String2);
     }
 
     [TestMethod]
     [UsedImplicitly]
     public async Task SaveAsyncTest()
     {
-        List<TestInstance> data = await _sheet.LoadAsync<TestInstance>(RangeUpdate);
+        SheetLoadedData<TestInstance> loadedData = await _sheet.LoadAsync<TestInstance>(RangeUpdate);
 
-        data[0].String2 = null!;
+        loadedData.Instances[0].String2 = null!;
 
-        await _sheet.SaveAsync(data);
-        data = await _sheet.LoadAsync<TestInstance>();
-        Assert.AreEqual(0, data.Count);
+        await _sheet.SaveAsync(loadedData.Instances);
+        loadedData = await _sheet.LoadAsync<TestInstance>();
+        Assert.AreEqual(0, loadedData.Instances.Count);
 
-        data.Add(TestInstance);
-        await _sheet.SaveAsync(data);
-        data = await _sheet.LoadAsync<TestInstance>();
-        Assert.AreEqual(1, data.Count);
-        Assert.AreEqual(TestInstance.String2, data[0].String2);
+        loadedData.Instances.Add(TestInstance);
+        await _sheet.SaveAsync(loadedData.Instances);
+        loadedData = await _sheet.LoadAsync<TestInstance>();
+        Assert.AreEqual(1, loadedData.Instances.Count);
+        Assert.AreEqual(TestInstance.String2, loadedData.Instances[0].String2);
 
         TestInstance second = new()
         {
             String2 = TestInstance.String2
         };
-        data.Add(second);
-        await _sheet.SaveAsync(data);
+        loadedData.Instances.Add(second);
+        await _sheet.SaveAsync(loadedData.Instances);
 
         await LoadAndCheckData();
     }
