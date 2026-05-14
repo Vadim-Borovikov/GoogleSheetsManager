@@ -1,10 +1,13 @@
-﻿using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
-using GoogleSheetsManager.Documents;
+﻿using GoogleSheetsManager.Documents;
+using GryphonUtilities.Time;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
+
 // ReSharper disable NullableWarningSuppressionIsUsed
 
 namespace GoogleSheetsManager.Tests;
@@ -71,6 +74,9 @@ public class SheetTests
 
         Assert.AreEqual(TestInstance.String2, loadedData.Instances[0].String2);
         Assert.AreEqual(TestInstance.String2, loadedData.Instances[1].String2);
+
+        Assert.AreEqual(TestInstance.DateTimeFull, loadedData.Instances[0].DateTimeFull);
+        Assert.AreEqual(null, loadedData.Instances[1].DateTimeFull);
     }
 
     [TestMethod]
@@ -109,14 +115,16 @@ public class SheetTests
     private static Manager _manager = null!;
     private static Sheet _sheet = null!;
     private const string SheeetTitle = "Test";
-    private const string RangeGetEmpty = "A1:D1";
-    private const string RangeUpdate = "A1:D2";
+    private const string RangeGetEmpty = "A1:E1";
+    private const string RangeUpdate = "A1:E2";
     private const string PdfMime = "application/pdf";
+    private const string TimeZoneId = "Central Europe Standard Time";
     private static readonly TestInstance TestInstance = new()
     {
         Int = 32,
         Bool = false,
         String1 = "dlfnsdkfjgnsd",
-        String2 = "fdgsdfg"
+        String2 = "fdgsdfg",
+        DateTimeFull = new DateTimeFull(new DateOnly(2026, 5, 14), new TimeOnly(12, 45, 50), TimeZoneId)
     };
 }

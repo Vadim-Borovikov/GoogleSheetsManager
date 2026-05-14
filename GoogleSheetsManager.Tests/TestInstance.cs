@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using GryphonUtilities.Time;
+using System.ComponentModel.DataAnnotations;
 // ReSharper disable NullableWarningSuppressionIsUsed
 
 namespace GoogleSheetsManager.Tests;
@@ -18,4 +19,7 @@ internal sealed class TestInstance
     [Required]
     [SheetField("RequiredStringTitle")]
     public string String2 = null!;
+
+    [SheetField("NullableDateTimeFullTitle", "{0:dd.MM.yyyy HH:mm:ss}")]
+    public DateTimeFull? DateTimeFull;
 }
