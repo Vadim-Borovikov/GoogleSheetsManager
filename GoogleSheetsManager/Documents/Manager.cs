@@ -1,17 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Google.Apis.Auth.OAuth2;
+﻿using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using GoogleSheetsManager.Extensions;
 using GoogleSheetsManager.Providers;
+using GryphonUtilities.Extensions;
 using GryphonUtilities.Time;
 using JetBrains.Annotations;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace GoogleSheetsManager.Documents;
 
@@ -110,7 +111,7 @@ public sealed class Manager : IDisposable
     private static async Task MoveAndRenameAsync(DriveProvider provider, string newName, string folderId)
     {
         IList<string> oldParentLists = await provider.GetParentsAsync();
-        string oldParents = string.Join(',', oldParentLists);
+        string oldParents = oldParentLists.Join(",");
         await provider.MoveAndRenameAsync(newName, folderId, oldParents);
     }
 

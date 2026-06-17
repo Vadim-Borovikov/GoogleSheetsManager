@@ -1,5 +1,6 @@
-﻿using System;
+﻿using GryphonUtilities.Extensions;
 using JetBrains.Annotations;
+using System;
 
 namespace GoogleSheetsManager.Extensions;
 
@@ -12,7 +13,7 @@ public static class UriExtensions
         {
             caption = uri.AbsoluteUri;
         }
-        return string.Format(HyperlinkFormat, uri.AbsoluteUri, caption);
+        return HyperlinkFormat.Format(uri.AbsoluteUri, caption);
     }
 
     private const string HyperlinkFormat = "=HYPERLINK(\"{0}\";\"{1}\")";

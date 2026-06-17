@@ -1,13 +1,13 @@
-﻿using JetBrains.Annotations;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System;
+﻿using Google.Apis.Sheets.v4.Data;
 using GoogleSheetsManager.Providers;
-using System.Linq;
-using System.ComponentModel.DataAnnotations;
-using System.Reflection;
-using Google.Apis.Sheets.v4.Data;
 using GryphonUtilities.Extensions;
+using JetBrains.Annotations;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace GoogleSheetsManager.Documents;
 
@@ -249,7 +249,7 @@ public class Sheet
 
             object? value = getter(info, instance);
             string title = GetTitle(sheetField, titleAliases, info);
-            map[title] = sheetField.Format is null ? value : string.Format(sheetField.Format, value);
+            map[title] = sheetField.Format?.Format(value) ?? value;
         }
     }
 
